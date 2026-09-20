@@ -1,6 +1,6 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import { infoEmbed } from '../../../core/embeds.js';
-import { CHANNEL_PURPOSES } from '../guildConfig.js';
+import { CHANNEL_PURPOSES } from '../../../core/guildConfig.js';
 
 const MENTION_LABEL = { here: '@here', none: 'None' };
 

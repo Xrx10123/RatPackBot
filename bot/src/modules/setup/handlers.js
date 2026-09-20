@@ -1,6 +1,6 @@
 import { PermissionsBitField } from 'discord.js';
 import { errorEmbed } from '../../core/embeds.js';
-import { CHANNEL_PURPOSES, getGuildConfig, updateGuildConfig } from './guildConfig.js';
+import { CHANNEL_PURPOSES, getGuildConfig, updateGuildConfig } from '../../core/guildConfig.js';
 import { buildHubPayload } from './ui/hub.js';
 import { buildChannelStepPayload, buildChannelSelectPayload, createRatpackCategory, missingManageChannelsEmbed } from './ui/channelStep.js';
 import { buildTimezoneStepPayload, buildTimezoneSearchModal, isValidTimezone } from './ui/timezoneStep.js';

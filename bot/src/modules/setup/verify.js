@@ -1,5 +1,5 @@
 import { PermissionsBitField } from 'discord.js';
-import { CHANNEL_PURPOSES } from './guildConfig.js';
+import { CHANNEL_PURPOSES } from '../../core/guildConfig.js';
 import { successEmbed, errorEmbed } from '../../core/embeds.js';
 
 const REQUIRED_PERMS = ['ViewChannel', 'SendMessages', 'EmbedLinks'];

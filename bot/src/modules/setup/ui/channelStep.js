@@ -1,6 +1,6 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelSelectMenuBuilder, ChannelType } from 'discord.js';
 import { infoEmbed, errorEmbed } from '../../../core/embeds.js';
-import { CHANNEL_PURPOSES } from '../guildConfig.js';
+import { CHANNEL_PURPOSES } from '../../../core/guildConfig.js';
 
 export function buildChannelStepPayload(purpose, config) {
   const meta = CHANNEL_PURPOSES[purpose];

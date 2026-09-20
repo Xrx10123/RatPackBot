@@ -1,7 +1,9 @@
 import { eq } from 'drizzle-orm';
-import { db } from '../../db/index.js';
-import { guilds } from '../../db/schema.js';
+import { db } from '../db/index.js';
+import { guilds } from '../db/schema.js';
 
+// Lives in core/ (not modules/setup/) because the guilds row is shared,
+// cross-cutting state — games, outages, and Peaches all read from it too.
 export const CHANNEL_PURPOSES = {
   panel: { label: 'Music Fallback', emoji: '🎵', field: 'panelChannelId', defaultName: 'rat-nest' },
   news: { label: 'Game News', emoji: '📰', field: 'newsChannelId', defaultName: 'game-updates' },

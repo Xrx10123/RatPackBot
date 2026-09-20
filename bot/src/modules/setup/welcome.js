@@ -1,7 +1,7 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import { successEmbed } from '../../core/embeds.js';
 import { checkChannelPermissions } from '../../core/permissions.js';
-import { ensureGuildConfig } from './guildConfig.js';
+import { ensureGuildConfig } from '../../core/guildConfig.js';
 
 export function buildWelcomePayload() {
   const embed = successEmbed({

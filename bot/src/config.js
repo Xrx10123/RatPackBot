@@ -45,6 +45,16 @@ export const config = {
   riot: {
     apiKey: process.env.RIOT_API_KEY || null,
   },
+  fortnite: {
+    // Not in the original plan's env list — fortnite-api.com's stats endpoint
+    // turned out to require a (free) key despite the build plan assuming none.
+    apiKey: process.env.FORTNITE_API_KEY || null,
+  },
+  dbd: {
+    // No confirmed stable public host for "DBD-Database" was found — left
+    // unset by default so the feature degrades instead of hitting a guess.
+    apiBaseUrl: process.env.DBD_API_BASE_URL || null,
+  },
   zomboid: {
     rconHost: process.env.ZOMBOID_RCON_HOST || null,
     rconPort: process.env.ZOMBOID_RCON_PORT || null,

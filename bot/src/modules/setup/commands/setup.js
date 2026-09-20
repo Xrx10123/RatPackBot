@@ -1,5 +1,5 @@
 import { SlashCommandBuilder, PermissionFlagsBits } from 'discord.js';
-import { ensureGuildConfig, getGuildConfig } from '../guildConfig.js';
+import { ensureGuildConfig, getGuildConfig } from '../../../core/guildConfig.js';
 import { buildHubPayload } from '../ui/hub.js';
 import { verifyGuildChannels, buildVerifyEmbed } from '../verify.js';
 
