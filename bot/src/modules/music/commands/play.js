@@ -1,9 +1,9 @@
 import { SlashCommandBuilder } from 'discord.js';
-import { getLavalinkManager } from '../../../lavalink/manager.js';
 import { successEmbed, errorEmbed, warnEmbed } from '../../../core/embeds.js';
 import { checkChannelPermissions } from '../../../core/permissions.js';
 import { resolveSearchQuery, isUrl } from '../sources.js';
 import { flavor, FLAVOR } from '../../../utils/ratpack.js';
+import { ensureConnectedPlayer, markBridgeNotice } from '../playerLifecycle.js';
 
 export const play = {
   data: new SlashCommandBuilder()
@@ -36,23 +36,8 @@ export const play = {
     await interaction.deferReply({ ephemeral: true });
 
     const query = interaction.options.getString('query', true);
-    const manager = getLavalinkManager();
-
-    let player = manager.getPlayer(interaction.guildId);
-    if (!player) {
-      player = manager.createPlayer({
-        guildId: interaction.guildId,
-        voiceChannelId: voiceChannel.id,
-        textChannelId: interaction.channelId,
-        selfDeaf: true,
-        selfMute: false,
-        volume: 100,
-      });
-    }
-
-    if (!player.connected) {
-      await player.connect();
-    }
+    const player = await ensureConnectedPlayer(interaction.guildId, voiceChannel);
+    markBridgeNotice(player, interaction.channelId);
 
     const result = await player.search({ query: resolveSearchQuery(query) }, interaction.user);
 

@@ -1,40 +1,47 @@
-import { successEmbed, warnEmbed } from '../core/embeds.js';
-import { formatDuration } from '../utils/format.js';
-import { flavor, FLAVOR } from '../utils/ratpack.js';
+import { infoEmbed } from '../core/embeds.js';
+import { upsertPanel, stopProgressLoop } from '../modules/music/ui/panel.js';
+import { getPanelRow, deletePanelRow } from '../modules/music/panelStore.js';
 import { logger } from '../core/logger.js';
 
+const BRIDGE_NOTICE_TTL_MS = 30_000;
+
 /**
- * Wires playback lifecycle events to Discord feedback. The Rat Nest voice
- * panel (M3) will take over "now playing" rendering later — for now this
- * posts a plain embed in the channel the track was requested from.
+ * Wires playback lifecycle events to the Rat Nest panel (M3). The panel is
+ * the single now-playing surface — trackStart/queueEnd re-render it in
+ * place rather than posting separate messages.
  */
 export function registerLavalinkEvents(manager, client) {
-  manager.on('trackStart', async (player, track) => {
-    const channel = player.textChannelId && (await resolveChannel(client, player));
-    if (!channel) return;
+  manager.on('trackStart', async (player) => {
+    const message = await upsertPanel(client, player);
+    if (!message) return;
 
-    const embed = successEmbed({
-      title: '🎵 Now Playing',
-      description: [
-        `**[${track.info.title}](${track.info.uri})**`,
-        `${track.info.author} · ${formatDuration(track.info.duration)}`,
-        flavor(FLAVOR.nowPlaying),
-      ]
-        .filter(Boolean)
-        .join('\n'),
-      thumbnail: track.info.artworkUrl ?? undefined,
-    });
-
-    channel.send({ embeds: [embed] }).catch((err) => logger.warn({ err }, "Couldn't post now-playing message"));
+    const bridgeChannelId = player.get('bridgeNotice');
+    if (bridgeChannelId) {
+      player.set('bridgeNotice', null);
+      postBridgeNotice(client, player, bridgeChannelId, message).catch((err) =>
+        logger.warn({ err }, "Couldn't post discoverability bridge notice"),
+      );
+    }
   });
 
   manager.on('queueEnd', async (player) => {
-    const channel = player.textChannelId && (await resolveChannel(client, player));
-    if (channel) {
-      channel
-        .send({ embeds: [warnEmbed({ description: "🐀 Queue's empty. The rats have nothing left to sniff out." })] })
-        .catch(() => {});
+    stopProgressLoop(player);
+    await upsertPanel(client, player);
+  });
+
+  manager.on('playerMove', async (player, oldVoiceChannelId) => {
+    const oldRow = getPanelRow(oldVoiceChannelId);
+    if (oldRow?.messageId) {
+      const oldChannel = await client.channels.fetch(oldVoiceChannelId).catch(() => null);
+      const oldMessage = oldChannel && (await oldChannel.messages.fetch(oldRow.messageId).catch(() => null));
+      await oldMessage?.delete().catch(() => {});
     }
+    deletePanelRow(oldVoiceChannelId);
+    await upsertPanel(client, player);
+  });
+
+  manager.on('playerDestroy', (player) => {
+    stopProgressLoop(player);
   });
 
   manager.on('trackError', (player, track, payload) => {
@@ -46,10 +53,18 @@ export function registerLavalinkEvents(manager, client) {
   });
 }
 
-async function resolveChannel(client, player) {
-  try {
-    return await client.channels.fetch(player.textChannelId);
-  } catch {
-    return null;
+async function postBridgeNotice(client, player, channelId, panelMessage) {
+  if (channelId === player.voiceChannelId) return;
+
+  const channel = await client.channels.fetch(channelId).catch(() => null);
+  if (!channel?.isTextBased()) return;
+
+  const link = `https://discord.com/channels/${player.guildId}/${player.voiceChannelId}/${panelMessage.id}`;
+  const notice = await channel
+    .send({ embeds: [infoEmbed({ description: `🐀 Now playing in <#${player.voiceChannelId}> → [jump to panel](${link})` })] })
+    .catch(() => null);
+
+  if (notice) {
+    setTimeout(() => notice.delete().catch(() => {}), BRIDGE_NOTICE_TTL_MS).unref?.();
   }
 }

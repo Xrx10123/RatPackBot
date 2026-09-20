@@ -13,7 +13,7 @@ registerLavalinkEvents(lavalinkManager, client);
 
 client.once('ready', () => {
   logger.info({ tag: client.user.tag }, '🐀 Ratpack is online');
-  lavalinkManager.init({ id: client.user.id, username: client.user.username });
+  lavalinkManager.init({ id: client.user.id, username: client.user.username }).catch((err) => logger.error({ err }, 'Lavalink manager init failed'));
 });
 
 process.on('unhandledRejection', (err) => logger.error({ err }, 'Unhandled rejection'));

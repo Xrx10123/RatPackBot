@@ -25,6 +25,25 @@ export function formatProgressBar(positionMs, durationMs, { length = 20 } = {}) 
   return `${bar} ${formatDuration(positionMs)} / ${formatDuration(durationMs)}`;
 }
 
+/**
+ * Parses a timestamp like "90", "1:30", or "1:02:03" into milliseconds.
+ * Returns null if the input isn't a valid timestamp.
+ */
+export function parseDuration(input) {
+  const trimmed = input.trim();
+  if (!/^\d+(:\d{1,2}){0,2}$/.test(trimmed)) return null;
+
+  const parts = trimmed.split(':').map(Number);
+  if (parts.some((n) => !Number.isFinite(n))) return null;
+
+  let seconds = 0;
+  for (const part of parts) {
+    seconds = seconds * 60 + part;
+  }
+
+  return seconds * 1000;
+}
+
 /** Joins items as a numbered list, one per line. */
 export function formatList(items, { start = 1 } = {}) {
   return items.map((item, i) => `${start + i}. ${item}`).join('\n');
