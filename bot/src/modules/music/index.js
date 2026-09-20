@@ -10,6 +10,9 @@ import { loop } from './commands/loop.js';
 import { shuffle } from './commands/shuffle.js';
 import { seek } from './commands/seek.js';
 import { playlist } from './commands/playlist.js';
+import { effects } from './commands/effects.js';
+import { lyrics } from './commands/lyrics.js';
+import { musicconfig } from './commands/musicconfig.js';
 import { searchHandlers } from './ui/search.js';
 import { panelButtons, panelSelects, upsertPanel } from './ui/panel.js';
 import { getPanelRowByMessageId, deletePanelRow } from './panelStore.js';
@@ -18,7 +21,7 @@ import { buildQueuePage } from './ui/queuePage.js';
 
 export default {
   name: 'music',
-  commands: [play, search, queue, skip, pause, resume, stop, volume, loop, shuffle, seek, playlist],
+  commands: [play, search, queue, skip, pause, resume, stop, volume, loop, shuffle, seek, playlist, effects, lyrics, musicconfig],
   buttons: {
     ...panelButtons,
     search_playnow: searchHandlers.search_playnow,

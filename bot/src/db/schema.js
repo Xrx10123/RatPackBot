@@ -13,6 +13,9 @@ export const guilds = sqliteTable('guilds', {
   defaultRoleId: text('default_role_id'),
   flavorEnabled: integer('flavor_enabled').default(1),
   createdAt: integer('created_at'),
+  djRoleId: text('dj_role_id'),
+  voteSkipThreshold: integer('vote_skip_threshold').default(50),
+  twentyFourSeven: integer('twenty_four_seven').default(0),
 });
 
 // --- Music --------------------------------------------------------------

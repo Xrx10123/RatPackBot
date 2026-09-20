@@ -9,4 +9,7 @@ WORKDIR /app
 COPY --from=builder /app/node_modules ./node_modules
 COPY . .
 ENV NODE_ENV=production
+# node:22-alpine already ships a "node" user (uid 1000) — run as that instead of root.
+RUN mkdir -p /app/data && chown -R node:node /app
+USER node
 CMD ["node", "src/index.js"]

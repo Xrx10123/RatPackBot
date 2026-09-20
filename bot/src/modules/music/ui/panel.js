@@ -6,6 +6,8 @@ import { formatProgressBar } from '../../../utils/format.js';
 import { listPublicHoards, getHoardById, getHoardTracks, resolveHoardTracks } from '../hoards.js';
 import { getPanelRow, upsertPanelRow, deletePanelRow } from '../panelStore.js';
 import { buildQueuePage } from './queuePage.js';
+import { getGuildConfig } from '../../../core/guildConfig.js';
+import { registerSkipVote } from '../voteSkip.js';
 
 export const PANEL_REFRESH_MS = 10_000;
 const LOOP_LABEL = { off: 'Off', track: 'Track', queue: 'Queue' };
@@ -216,6 +218,14 @@ export const panelButtons = {
   async panel_skip(interaction) {
     const player = requirePlayer(interaction);
     if (!(await requireSameVoice(interaction, player))) return;
+
+    const guildConfig = getGuildConfig(interaction.guildId);
+    const result = registerSkipVote(player, interaction.member, interaction.member.voice.channel, guildConfig);
+
+    if (!result.skip) {
+      await interaction.reply({ embeds: [infoEmbed({ description: `🗳 Vote to skip: **${result.votes}/${result.needed}** (of ${result.total} listening).` })], ephemeral: true });
+      return;
+    }
 
     await player.skip();
     await interaction.deferUpdate();

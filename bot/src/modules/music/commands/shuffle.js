@@ -1,6 +1,7 @@
 import { SlashCommandBuilder } from 'discord.js';
 import { requirePlayerInVoice } from '../guards.js';
 import { successEmbed, warnEmbed } from '../../../core/embeds.js';
+import { flavor, FLAVOR } from '../../../utils/ratpack.js';
 
 export const shuffle = {
   data: new SlashCommandBuilder().setName('shuffle').setDescription('Shuffle the current queue.'),
@@ -15,6 +16,9 @@ export const shuffle = {
     }
 
     await player.queue.shuffle();
-    await interaction.reply({ embeds: [successEmbed({ description: "🔀 Shuffled the hoard's queue." })], ephemeral: true });
+    await interaction.reply({
+      embeds: [successEmbed({ description: `🔀 Shuffled the hoard's queue. ${flavor(FLAVOR.shuffled)}`.trim() })],
+      ephemeral: true,
+    });
   },
 };
