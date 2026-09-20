@@ -1,11 +1,12 @@
 import { outage } from './commands/outage.js';
 import { status } from './commands/status.js';
+import { server } from './commands/server.js';
 import { seedDefaultMonitors } from './seed.js';
 import { pollAllOutages } from './checker.js';
 
 export default {
   name: 'outages',
-  commands: [outage, status],
+  commands: [outage, status, server],
   buttons: {},
   selects: {},
   modals: {},

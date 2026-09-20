@@ -55,11 +55,6 @@ export const config = {
     // unset by default so the feature degrades instead of hitting a guess.
     apiBaseUrl: process.env.DBD_API_BASE_URL || null,
   },
-  zomboid: {
-    rconHost: process.env.ZOMBOID_RCON_HOST || null,
-    rconPort: process.env.ZOMBOID_RCON_PORT || null,
-    rconPassword: process.env.ZOMBOID_RCON_PASSWORD || null,
-  },
   peaches: {
     imageDir: process.env.PEACHES_IMAGE_DIR || './data/peaches-images',
   },
