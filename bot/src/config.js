@@ -60,6 +60,9 @@ export const config = {
     rconPort: process.env.ZOMBOID_RCON_PORT || null,
     rconPassword: process.env.ZOMBOID_RCON_PASSWORD || null,
   },
+  peaches: {
+    imageDir: process.env.PEACHES_IMAGE_DIR || './data/peaches-images',
+  },
   logLevel: process.env.LOG_LEVEL || 'info',
   flavorEnabled: (process.env.FLAVOR_ENABLED ?? 'true') !== 'false',
 };

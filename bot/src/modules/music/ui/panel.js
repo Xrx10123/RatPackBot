@@ -13,7 +13,8 @@ const VOLUME_STEP = 10;
 
 function formatRequester(requester) {
   if (!requester) return 'the rats';
-  if (typeof requester === 'object' && requester !== null && 'id' in requester) return `<@${requester.id}>`;
+  if (typeof requester === 'string') return requester; // e.g. Peaches' cross-module hook
+  if (typeof requester === 'object' && 'id' in requester) return `<@${requester.id}>`;
   return 'the rats';
 }
 

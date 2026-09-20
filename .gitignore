@@ -2,6 +2,9 @@ node_modules/
 .env
 data/*
 !data/.gitkeep
+!data/peaches-images/
+data/peaches-images/*
+!data/peaches-images/.gitkeep
 *.log
 npm-debug.log*
 .DS_Store
