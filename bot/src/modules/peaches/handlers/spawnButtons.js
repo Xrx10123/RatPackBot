@@ -33,9 +33,10 @@ function makeSpawnButtonHandler(action) {
     const replyPayload = {
       embeds: [successEmbed({ description: `🐀 ${interaction.user} ${ACTION_LABELS[action]}.${isFirst ? ' First to help out today!' : ''}` })],
     };
-    await interaction.reply(applyMedia(replyPayload, getMediaForMoment(action)));
+    await interaction.reply(await applyMedia(replyPayload, getMediaForMoment(action)));
 
-    await interaction.message.edit(buildSpawnPayload(state, spawn)).catch(() => {});
+    const updatedSpawnPayload = await buildSpawnPayload(state, spawn);
+    await interaction.message.edit(updatedSpawnPayload).catch(() => {});
   };
 }
 

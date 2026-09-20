@@ -5,6 +5,8 @@ import { getCurrentState, renamePeaches, getRenameCooldownRemaining, resetToCont
 import { getUserStats, getLeaderboard } from '../stats.js';
 import { getSpawnChannelIds, setSpawnChannelIds, updatePeachesConfig, ensurePeachesConfig } from '../config.js';
 import { resolveAllPending } from '../mischiefStore.js';
+import { spawnNow } from '../spawner.js';
+import { getMediaForMoment, applyMedia } from '../media.js';
 
 const LEADERBOARD_CATEGORIES = [
   { name: 'Cheese Fed', value: 'cheeseFed' },
@@ -93,7 +95,13 @@ export const pet = {
         .setDescription('Rename Peaches (once per week).')
         .addStringOption((o) => o.setName('name').setDescription('New name (1-32 chars)').setRequired(true).setMaxLength(32)),
     )
-    .addSubcommand((sub) => sub.setName('calm').setDescription('Emergency reset — mood to Content, clears pending mischief.')),
+    .addSubcommand((sub) => sub.setName('calm').setDescription('Emergency reset — mood to Content, clears pending mischief.'))
+    .addSubcommand((sub) =>
+      sub
+        .setName('spawn')
+        .setDescription('Force Peaches to appear right now (skips the random timer).')
+        .addChannelOption((o) => o.setName('channel').setDescription('Which spawn channel (default: first configured one)').addChannelTypes(ChannelType.GuildText)),
+    ),
 
   async execute(interaction) {
     const sub = interaction.options.getSubcommand();
@@ -105,9 +113,48 @@ const SUBCOMMAND_HANDLERS = {
   async status(interaction) {
     const state = getCurrentState(interaction.guildId);
     const mood = MOOD_DISPLAY[state.mood] ?? MOOD_DISPLAY.content;
-    await interaction.reply({
-      embeds: [successEmbed({ title: `${mood.emoji} ${state.name}`, description: `${state.name} ${mood.flavor}\n\nLevel **${state.level}** · Mood: **${mood.label}**` })],
-    });
+    const payload = {
+      embeds: [
+        successEmbed({
+          title: `${mood.emoji} ${state.name}`,
+          description: `${state.name} ${mood.flavor}\n\nLevel **${state.level}** · Mood: **${mood.label}**`,
+        }),
+      ],
+    };
+    await interaction.reply(await applyMedia(payload, getMediaForMoment(state.mood)));
+  },
+
+  async spawn(interaction) {
+    if (!(await requireAdmin(interaction))) return;
+
+    const channels = getSpawnChannelIds(interaction.guildId);
+    const requestedChannel = interaction.options.getChannel('channel');
+    const channelId = requestedChannel?.id ?? channels[0];
+
+    if (!channelId) {
+      await interaction.reply({
+        embeds: [errorEmbed({ description: '🐀 No spawn channels configured yet — add one with `/pet channels action:Add`.' })],
+        ephemeral: true,
+      });
+      return;
+    }
+    if (requestedChannel && !channels.includes(requestedChannel.id)) {
+      await interaction.reply({
+        embeds: [errorEmbed({ description: `🐀 <#${requestedChannel.id}> isn't a configured spawn channel — add it with \`/pet channels action:Add\` first.` })],
+        ephemeral: true,
+      });
+      return;
+    }
+
+    await interaction.deferReply({ ephemeral: true });
+    const result = await spawnNow(interaction.client, interaction.guildId, channelId, { force: true });
+
+    if (!result.ok) {
+      await interaction.editReply({ embeds: [errorEmbed({ description: "🐀 Couldn't post the spawn — check my permissions in that channel." })] });
+      return;
+    }
+
+    await interaction.editReply({ embeds: [successEmbed({ description: `🐀 Spawned in <#${channelId}>.` })] });
   },
 
   async stats(interaction) {

@@ -73,7 +73,7 @@ function getLastInteractionAt(guildId) {
     .from(peachesInteractions)
     .innerJoin(peachesSpawns, eq(peachesInteractions.spawnId, peachesSpawns.id))
     .where(eq(peachesSpawns.guildId, guildId))
-    .orderBy(desc(peachesInteractions.createdAt), desc(sql`rowid`))
+    .orderBy(desc(peachesInteractions.createdAt), desc(sql`peaches_interactions.rowid`))
     .limit(1)
     .get();
   return row?.createdAt ?? null;
@@ -111,7 +111,7 @@ export function getActionCooldownRemaining(guildId, userId, action) {
     .from(peachesInteractions)
     .innerJoin(peachesSpawns, eq(peachesInteractions.spawnId, peachesSpawns.id))
     .where(and(eq(peachesSpawns.guildId, guildId), eq(peachesInteractions.userId, userId), eq(peachesInteractions.action, action)))
-    .orderBy(desc(peachesInteractions.createdAt), desc(sql`rowid`))
+    .orderBy(desc(peachesInteractions.createdAt), desc(sql`peaches_interactions.rowid`))
     .limit(1)
     .get();
 

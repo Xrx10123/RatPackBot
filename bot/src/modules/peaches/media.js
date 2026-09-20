@@ -57,15 +57,37 @@ export function getMediaForMoment(key) {
   return null;
 }
 
+// Cache downloaded bytes per URL — it's a small fixed set of ~15 curated
+// GIFs reused constantly, no reason to re-fetch Tenor every single spawn.
+const remoteMediaCache = new Map(); // url -> Buffer
+
+async function fetchRemoteMedia(url) {
+  if (remoteMediaCache.has(url)) return remoteMediaCache.get(url);
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Failed to fetch media (${res.status}): ${url}`);
+  const buffer = Buffer.from(await res.arrayBuffer());
+  remoteMediaCache.set(url, buffer);
+  return buffer;
+}
+
 /**
- * Mutates payload in place to attach media, matching how Discord actually
- * renders each case: a raw video URL only unfurls into a native player when
- * it's in message content (not inside an embed field); a local video file
- * gets its own native player automatically just by being attached; static
- * images/GIFs render through the embed's image field.
+ * Mutates payload in place to attach media as a real file. Discord only
+ * renders a native inline video/gif player for an actual attachment, or for
+ * a bare unfurled link in a message with NO explicit embed — once a message
+ * carries a custom embed (which every one of these does), a plain link in
+ * content just renders as blue text instead of unfurling. Downloading the
+ * bytes and attaching them keeps the embed, buttons, and a genuinely
+ * playing video/gif all in one message.
  */
-export function applyMedia(payload, media) {
+export async function applyMedia(payload, media) {
   if (!media) return payload;
+
+  // Explicitly clearing `attachments` matters when this payload is used for
+  // Message#edit (e.g. re-rendering a spawn after a feed/water/play click):
+  // Discord's edit endpoint ADDS new file uploads to whatever's already
+  // attached unless the attachment list is explicitly reset, which would
+  // otherwise stack a new video onto the message every single click.
+  payload.attachments = [];
 
   if (media.type === 'file') {
     const filename = path.basename(media.filePath);
@@ -77,10 +99,15 @@ export function applyMedia(payload, media) {
   }
 
   if (media.type === 'url') {
-    if (isVideo(media.url)) {
-      payload.content = [payload.content, media.url].filter(Boolean).join('\n');
-    } else if (payload.embeds?.[0]) {
-      payload.embeds[0].setImage(media.url);
+    try {
+      const buffer = await fetchRemoteMedia(media.url);
+      const filename = media.url.split('/').pop().split('?')[0] || 'media.mp4';
+      payload.files = [...(payload.files ?? []), new AttachmentBuilder(buffer, { name: filename })];
+      if (!isVideo(filename) && payload.embeds?.[0]) {
+        payload.embeds[0].setImage(`attachment://${filename}`);
+      }
+    } catch {
+      // media is best-effort flavor — ship the message without it rather than block on a fetch failure
     }
   }
 

@@ -33,16 +33,48 @@ async function maybeSpawnForGuild(client, guildId) {
   if (Math.random() > chance) return;
 
   const channelId = spawnChannels[Math.floor(Math.random() * spawnChannels.length)];
+  await spawnNow(client, guildId, channelId);
+}
+
+/**
+ * Posts a spawn immediately in the given channel, skipping the random
+ * timing gate. Used by both the scheduled tick (force: false — respects
+ * "only one active spawn per guild") and /pet spawn (force: true — an
+ * explicit manual trigger should replace whatever's currently active rather
+ * than just refuse; Peaches' underlying state/stats live in a separate
+ * guild-level table and are untouched by this, only the spawn record itself
+ * is swapped).
+ */
+export async function spawnNow(client, guildId, channelId, { force = false } = {}) {
+  const active = getActiveSpawn(guildId);
+  if (active) {
+    if (!force) return { ok: false, reason: 'active' };
+    await expireSpawn(client, active);
+  }
+
   const channel = await client.channels.fetch(channelId).catch(() => null);
-  if (!channel) return;
+  if (!channel) return { ok: false, reason: 'channel' };
 
   const variant = pickVariant();
   const spawn = createSpawn({ guildId, channelId, variant, expiresInMs: VARIANTS[variant].expiresInMs });
-  bumpLastSpawnAt(guildId);
 
-  const currentState = getCurrentState(guildId);
-  const message = await channel.send(buildSpawnPayload(currentState, spawn)).catch(() => null);
-  if (message) setSpawnMessageId(spawn.id, message.id);
+  // Once the row above exists it blocks every future spawn (active-spawn
+  // gate) until resolved — anything that goes wrong from here on MUST clean
+  // it up, or it orphans forever with nothing visible posted. This is
+  // exactly what happened during testing: a failed send left a permanently
+  // "active" ghost spawn that blocked all further attempts.
+  try {
+    bumpLastSpawnAt(guildId);
+    const currentState = getCurrentState(guildId);
+    const payload = await buildSpawnPayload(currentState, spawn);
+    const message = await channel.send(payload);
+    setSpawnMessageId(spawn.id, message.id);
+    return { ok: true, spawn, message };
+  } catch (err) {
+    resolveSpawn(spawn.id);
+    logger.warn({ err, guildId, channelId, spawnId: spawn.id }, 'Peaches spawn failed to post — cleared the active-spawn lock');
+    return { ok: false, reason: 'send' };
+  }
 }
 
 async function expireSpawn(client, spawn) {

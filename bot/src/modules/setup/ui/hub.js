@@ -28,8 +28,13 @@ export function buildHubPayload(config) {
     new ButtonBuilder().setCustomId('setup:check').setEmoji('✅').setLabel('Check').setStyle(ButtonStyle.Primary),
   );
 
+  const row3 = new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setCustomId('setup:peaches_open').setEmoji('🐀').setLabel('Peaches').setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder().setCustomId('setup:music_open').setEmoji('🎵').setLabel('Music').setStyle(ButtonStyle.Secondary),
+  );
+
   return {
     embeds: [infoEmbed({ title: '🐀 Ratpack Setup', description: lines.join('\n') })],
-    components: [row1, row2],
+    components: [row1, row2, row3],
   };
 }

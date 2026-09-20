@@ -4,7 +4,7 @@ import { fuzzySearch } from '../../../utils/fuzzy.js';
 import { updateGuildConfig } from '../../../core/guildConfig.js';
 import { KNOWN_SERVICES, validateStatuspageHost } from '../providers/statuspage.js';
 import { checkService } from '../checkService.js';
-import { buildStatusBoard } from '../ui/board.js';
+import { buildStatusBoardPayload } from '../ui/board.js';
 import { listMonitors, getMonitorBySlug, addMonitor, removeMonitor, updateMonitorStatus, setUserNotify } from '../monitors.js';
 
 const CURATED = [{ slug: 'steam', name: 'Steam' }, ...Object.entries(KNOWN_SERVICES).map(([slug, v]) => ({ slug, name: v.name }))];
@@ -75,7 +75,7 @@ export const outage = {
 
 const SUBCOMMAND_HANDLERS = {
   async list(interaction) {
-    await interaction.reply({ embeds: [buildStatusBoard(listMonitors(interaction.guildId))] });
+    await interaction.reply(buildStatusBoardPayload(listMonitors(interaction.guildId)));
   },
 
   async search(interaction) {

@@ -1,13 +1,25 @@
 import { outage } from './commands/outage.js';
 import { status } from './commands/status.js';
-import { server } from './commands/server.js';
+import { server, buildServerCheckPayload } from './commands/server.js';
 import { seedDefaultMonitors } from './seed.js';
 import { pollAllOutages } from './checker.js';
+import { refreshStatusBoard } from './ui/board.js';
 
 export default {
   name: 'outages',
   commands: [outage, status, server],
-  buttons: {},
+  buttons: {
+    async board_refresh(interaction) {
+      await interaction.deferUpdate();
+      const payload = await refreshStatusBoard(interaction.guildId);
+      await interaction.editReply(payload);
+    },
+    async server_refresh(interaction, slug) {
+      await interaction.deferUpdate();
+      const payload = await buildServerCheckPayload(slug);
+      await interaction.editReply(payload);
+    },
+  },
   selects: {},
   modals: {},
   events: [

@@ -33,7 +33,7 @@ async function triggerAmbientMischief(client, channel, guildId, state) {
   if (state.mood === 'thriving') {
     const row = createMischief({ guildId, channelId: channel.id, type: 'crumbs', expiresInMs: MISCHIEF_TTL_MS });
     resolveMischief(row.id);
-    const payload = applyMedia({ embeds: [successEmbed({ description: `🧀 ${state.name} left you a snack. You're welcome.` })] }, getMediaForMoment('thriving'));
+    const payload = await applyMedia({ embeds: [successEmbed({ description: `🧀 ${state.name} left you a snack. You're welcome.` })] }, getMediaForMoment('thriving'));
     await channel.send(payload).catch(() => {});
     return;
   }
@@ -51,7 +51,7 @@ async function triggerAmbientMischief(client, channel, guildId, state) {
 async function triggerInteractiveMischief(client, channel, guildId, state, type) {
   const ttl = type === 'turd' ? TURD_STALE_MS * 2 : MISCHIEF_TTL_MS;
   const row = createMischief({ guildId, channelId: channel.id, type, expiresInMs: ttl });
-  const payload = type === 'turd' ? buildTurdPayload(state.name, row.id) : buildHolePayload(state.name, row.id);
+  const payload = await (type === 'turd' ? buildTurdPayload(state.name, row.id) : buildHolePayload(state.name, row.id));
   const message = await channel.send(payload).catch(() => null);
   if (message) setMischiefMessageId(row.id, message.id);
 }
@@ -66,7 +66,7 @@ const ESCALATION_BUILDERS = {
 async function triggerEscalation(client, channel, guildId, state) {
   const type = nextEscalationType(guildId);
   const row = createMischief({ guildId, channelId: channel.id, type, expiresInMs: MISCHIEF_TTL_MS });
-  const payload = ESCALATION_BUILDERS[type](state.name, row.id);
+  const payload = await ESCALATION_BUILDERS[type](state.name, row.id);
 
   // Emoji Thief — flavor text only, no cross-module config field of its own,
   // piggybacks on escalationEnabled since it only ever fires during neglect.
@@ -128,7 +128,8 @@ async function sweepGuildMischief(client, guildId) {
       const channel = await client.channels.fetch(row.channelId).catch(() => null);
       const message = channel && (await channel.messages.fetch(row.messageId).catch(() => null));
       const state = getCurrentState(guildId);
-      await message?.edit(buildTurdPayload(state.name, row.id, { stale: true })).catch(() => {});
+      const stalePayload = await buildTurdPayload(state.name, row.id, { stale: true });
+      await message?.edit(stalePayload).catch(() => {});
     }
   }
 }

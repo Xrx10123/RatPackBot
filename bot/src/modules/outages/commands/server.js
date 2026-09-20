@@ -1,4 +1,4 @@
-import { SlashCommandBuilder } from 'discord.js';
+import { SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import { successEmbed, errorEmbed, warnEmbed } from '../../../core/embeds.js';
 import { fuzzySearch } from '../../../utils/fuzzy.js';
 import { checkService } from '../checkService.js';
@@ -11,6 +11,25 @@ function candidateList(guildId) {
   const monitored = listMonitors(guildId).map((m) => ({ slug: m.serviceSlug, name: m.serviceName }));
   const extras = CURATED.filter((c) => !monitored.some((m) => m.slug === c.slug));
   return [...monitored, ...extras];
+}
+
+/** Shared by /server and its refresh button so both stay in sync. */
+export async function buildServerCheckPayload(slug) {
+  try {
+    const result = await checkService(slug);
+    const up = result.indicator === 'none';
+    const embed = up
+      ? successEmbed({ description: `🟢 **${result.name}** servers are up.${result.description ? ` ${result.description}` : ''}` })
+      : errorEmbed({ description: `🔴 **${result.name}** — ${result.description ?? 'issues reported'}.` });
+    embed.setTimestamp(); // "last updated" — refreshed on every manual/auto refresh
+
+    const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder().setCustomId(`outages:server_refresh:${slug}`).setEmoji('🔄').setLabel('Refresh').setStyle(ButtonStyle.Secondary),
+    );
+    return { embeds: [embed], components: [row] };
+  } catch {
+    return { embeds: [warnEmbed({ description: "🐀 Don't know how to check that one yet — try `/outage add` if it's on Statuspage, or `/outage search`." })] };
+  }
 }
 
 export const server = {
@@ -28,18 +47,6 @@ export const server = {
   async execute(interaction) {
     await interaction.deferReply();
     const slug = interaction.options.getString('game', true);
-
-    try {
-      const result = await checkService(slug);
-      const up = result.indicator === 'none';
-      const embed = up
-        ? successEmbed({ description: `🟢 **${result.name}** servers are up.${result.description ? ` ${result.description}` : ''}` })
-        : errorEmbed({ description: `🔴 **${result.name}** — ${result.description ?? 'issues reported'}.` });
-      await interaction.editReply({ embeds: [embed] });
-    } catch {
-      await interaction.editReply({
-        embeds: [warnEmbed({ description: "🐀 Don't know how to check that one yet — try `/outage add` if it's on Statuspage, or `/outage search`." })],
-      });
-    }
+    await interaction.editReply(await buildServerCheckPayload(slug));
   },
 };

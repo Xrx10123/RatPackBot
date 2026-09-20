@@ -5,6 +5,8 @@ import { buildHubPayload } from './ui/hub.js';
 import { buildChannelStepPayload, buildChannelSelectPayload, createRatpackCategory, missingManageChannelsEmbed } from './ui/channelStep.js';
 import { buildTimezoneStepPayload, buildTimezoneSearchModal, isValidTimezone } from './ui/timezoneStep.js';
 import { buildMentionStepPayload, buildRoleSelectPayload } from './ui/mentionStep.js';
+import { buildPeachesSettingsPayload } from './ui/peachesSettingsStep.js';
+import { buildMusicSettingsPayload } from './ui/musicSettingsStep.js';
 import { verifyGuildChannels, buildVerifyEmbed } from './verify.js';
 
 function hub(interaction) {
@@ -79,6 +81,14 @@ export const setupButtons = {
     const config = getGuildConfig(interaction.guildId);
     const results = await verifyGuildChannels(interaction.guild, config);
     await interaction.reply({ embeds: [buildVerifyEmbed(results)], ephemeral: true });
+  },
+
+  async peaches_open(interaction) {
+    await interaction.update(buildPeachesSettingsPayload(interaction.guildId));
+  },
+
+  async music_open(interaction) {
+    await interaction.update(buildMusicSettingsPayload(getGuildConfig(interaction.guildId)));
   },
 };
 
