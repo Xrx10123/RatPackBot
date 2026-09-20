@@ -1,0 +1,55 @@
+import 'dotenv/config';
+
+function required(name) {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`Missing required environment variable: ${name}. Copy .env.example to .env and fill it in.`);
+  }
+  return value;
+}
+
+export const config = {
+  discord: {
+    token: required('DISCORD_TOKEN'),
+    clientId: required('DISCORD_CLIENT_ID'),
+    devGuildId: process.env.DISCORD_GUILD_ID_DEV || null,
+  },
+  database: {
+    path: process.env.DATABASE_PATH || './data/ratpack.db',
+  },
+  lavalink: {
+    host: process.env.LAVALINK_HOST || 'lavalink',
+    port: Number(process.env.LAVALINK_PORT) || 2333,
+    password: process.env.LAVALINK_PASSWORD || '',
+  },
+  spotify: {
+    clientId: process.env.SPOTIFY_CLIENT_ID || null,
+    clientSecret: process.env.SPOTIFY_CLIENT_SECRET || null,
+  },
+  appleMusic: {
+    token: process.env.APPLE_MUSIC_TOKEN || null,
+  },
+  deezer: {
+    key: process.env.DEEZER_KEY || null,
+  },
+  tidal: {
+    key: process.env.TIDAL_KEY || null,
+  },
+  youtube: {
+    cookie: process.env.YOUTUBE_COOKIE || null,
+    poToken: process.env.YOUTUBE_PO_TOKEN || null,
+  },
+  steam: {
+    apiKey: process.env.STEAM_API_KEY || null,
+  },
+  riot: {
+    apiKey: process.env.RIOT_API_KEY || null,
+  },
+  zomboid: {
+    rconHost: process.env.ZOMBOID_RCON_HOST || null,
+    rconPort: process.env.ZOMBOID_RCON_PORT || null,
+    rconPassword: process.env.ZOMBOID_RCON_PASSWORD || null,
+  },
+  logLevel: process.env.LOG_LEVEL || 'info',
+  flavorEnabled: (process.env.FLAVOR_ENABLED ?? 'true') !== 'false',
+};

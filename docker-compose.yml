@@ -1,0 +1,28 @@
+services:
+  bot:
+    build: ./bot
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      LAVALINK_HOST: lavalink
+      LAVALINK_PORT: 2333
+    volumes:
+      - ./data:/app/data
+    depends_on:
+      lavalink:
+        condition: service_healthy
+
+  lavalink:
+    build: ./lavalink
+    restart: unless-stopped
+    env_file: .env
+    expose:
+      - "2333"
+    volumes:
+      - ./data/lavalink:/opt/Lavalink/plugins
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "--header=Authorization: ${LAVALINK_PASSWORD}", "http://localhost:2333/version"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
