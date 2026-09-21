@@ -58,7 +58,7 @@ The SQLite database lives in `./data/ratpack.db` on the host and survives rebuil
 - **Bot won't start / crashes immediately** — check `docker compose logs bot`. Usually a missing required env var (`DISCORD_TOKEN`, `DISCORD_CLIENT_ID`, or `LAVALINK_PASSWORD`).
 - **Slash commands aren't showing up** — global command registration can take up to an hour to propagate. For instant registration during development, set `DISCORD_GUILD_ID_DEV` to your test server's ID.
 - **Permission denied writing to `./data`** — on Linux hosts, the bot container runs as a non-root user (uid 1000). If `./data` is owned by a different user on the host, run `sudo chown -R 1000:1000 ./data` once.
-- **Music won't play** — check `docker compose logs lavalink`. YouTube playback can be flagged by bot detection on some networks; the `youtube-source` plugin and a residential IP (rather than a cloud VPS) both help a lot. Optional `YOUTUBE_COOKIE`/`YOUTUBE_PO_TOKEN` in `.env` add further resilience.
+- **A song shows in the panel but ends instantly / never plays** — check `docker compose logs lavalink` for `AllClientsFailedException` / "This video requires login" / "unavailable". This is YouTube's bot detection, and it's common even on residential IPs now — a cloud VPS makes it worse. Fix: set `YOUTUBE_OAUTH_ENABLED=true` in `.env`, restart the `lavalink` container, watch `docker compose logs -f lavalink` for a one-time URL + code, authorize with a (burner) Google account, then copy the refresh token it prints into `YOUTUBE_REFRESH_TOKEN` so it persists across restarts. See the comments above those vars in `.env.example` for the full walkthrough.
 
 ## Peaches' image folder
 

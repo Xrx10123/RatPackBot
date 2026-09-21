@@ -24,7 +24,12 @@ lavalink:
       rotation: true
       channelMix: true
       lowPass: true
-    bufferDurationMs: 400
+    # 400ms (Lavalink's own default) is tight for a self-hosted setup —
+    # any network jitter between here and Discord's voice servers shows up
+    # as audible stutter/buffering. Bumped further after 1500ms still
+    # showed some jitter — plenty of CPU/RAM headroom (confirmed <7% CPU
+    # under load) to spend on a bigger buffer instead.
+    bufferDurationMs: 3000
     frameBufferDurationMs: 5000
     opusEncodingQuality: 10
     resamplingQuality: LOW
@@ -48,12 +53,33 @@ plugins:
     allowDirectVideoIds: true
     allowDirectPlaylistIds: true
     clients:
+      # TV is the ONLY client the plugin supports OAuth on (confirmed via
+      # its own docs) — it has no search/metadata support at all, so it's
+      # useless alone, but paired with the others below (which resolve
+      # search/metadata fine but were failing at actual playback) it gives
+      # Lavalink an authenticated fallback for the streaming step itself.
+      - TV
       - MUSIC
       - ANDROID_VR
       - WEB
       - WEBEMBEDDED
+    # YouTube's bot detection routinely fails every client with no auth at
+    # all ("This video requires login" / "unavailable") — OAuth is the
+    # plugin's own recommended fix. Enable via YOUTUBE_OAUTH_ENABLED=true;
+    # on first boot (with no refreshToken set) Lavalink prints a one-time
+    # device code + URL to its own logs (docker compose logs lavalink) —
+    # visit it, authorize with a Google account (a burner, per the plugin's
+    # own warning — it can flag/terminate the account), then copy the
+    # refresh token Lavalink prints afterward into YOUTUBE_REFRESH_TOKEN so
+    # it doesn't need to be redone on every restart.
     oauth:
-      enabled: false
+      enabled: "${YOUTUBE_OAUTH_ENABLED:false}"
+      refreshToken: "${YOUTUBE_REFRESH_TOKEN:}"
+    # Alternative/complementary to OAuth — only covers the WEB/WEBEMBEDDED
+    # clients per the plugin's own docs, not a full fix on its own.
+    pot:
+      token: "${YOUTUBE_PO_TOKEN:}"
+      visitorData: "${YOUTUBE_VISITOR_DATA:}"
   lavasrc:
     providers:
       - "ytsearch:\"%ISRC%\""
@@ -81,6 +107,7 @@ logging:
   level:
     root: INFO
     lavalink: INFO
+    dev.lavalink.youtube.http.YoutubeOauth2Handler: INFO # prints the OAuth device code + URL on first run
   logback:
     rollingpolicy:
       max-file-size: 50MB

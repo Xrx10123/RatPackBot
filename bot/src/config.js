@@ -35,10 +35,9 @@ export const config = {
   tidal: {
     key: process.env.TIDAL_KEY || null,
   },
-  youtube: {
-    cookie: process.env.YOUTUBE_COOKIE || null,
-    poToken: process.env.YOUTUBE_PO_TOKEN || null,
-  },
+  // Note: YOUTUBE_* resilience vars (OAuth/poToken) aren't read here — they
+  // go straight to the Lavalink container via its own env_file, since the
+  // bot process itself never touches YouTube directly. See lavalink/application.yml.
   steam: {
     apiKey: process.env.STEAM_API_KEY || null,
   },

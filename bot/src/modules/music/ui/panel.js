@@ -3,7 +3,7 @@ import { getLavalinkManager } from '../../../lavalink/manager.js';
 import { successEmbed, infoEmbed, errorEmbed, warnEmbed } from '../../../core/embeds.js';
 import { checkChannelPermissions } from '../../../core/permissions.js';
 import { formatProgressBar } from '../../../utils/format.js';
-import { listPublicHoards, getHoardById, getHoardTracks, resolveHoardTracks } from '../hoards.js';
+import { listPublicHoards, getHoardById, getHoardTracks, resolveHoardTracks, ensureCommunityFavorites, isTrackInHoard, addTrackToHoard } from '../hoards.js';
 import { getPanelRow, upsertPanelRow, deletePanelRow } from '../panelStore.js';
 import { buildQueuePage } from './queuePage.js';
 import { getGuildConfig } from '../../../core/guildConfig.js';
@@ -69,6 +69,7 @@ function controlRows(player) {
     new ButtonBuilder().setCustomId('music:panel_voldown').setEmoji('🔉').setStyle(ButtonStyle.Secondary).setDisabled(player.volume <= 0),
     new ButtonBuilder().setCustomId('music:panel_mute').setEmoji('🔇').setStyle(player.volume === 0 ? ButtonStyle.Danger : ButtonStyle.Secondary),
     new ButtonBuilder().setCustomId('music:panel_volup').setEmoji('🔊').setStyle(ButtonStyle.Secondary).setDisabled(player.volume >= 200),
+    new ButtonBuilder().setCustomId('music:panel_favorite').setEmoji('❤️').setStyle(ButtonStyle.Secondary).setDisabled(!track),
   );
 
   const rows = [row1, row2, row3];
@@ -317,6 +318,26 @@ export const panelButtons = {
       await player.setVolume(0);
     }
     await interaction.update(buildPanelPayload(player));
+  },
+
+  async panel_favorite(interaction) {
+    const player = requirePlayer(interaction);
+    if (!(await requireSameVoice(interaction, player))) return;
+
+    const track = player.queue.current;
+    if (!track) {
+      await interaction.reply({ embeds: [errorEmbed({ description: "🐀 Nothing's playing to favorite." })], ephemeral: true });
+      return;
+    }
+
+    const hoard = ensureCommunityFavorites(interaction.guildId);
+    if (isTrackInHoard(hoard.id, track.info.uri)) {
+      await interaction.reply({ embeds: [infoEmbed({ description: `❤️ **${track.info.title}** is already in Community Favorites.` })], ephemeral: true });
+      return;
+    }
+
+    addTrackToHoard(hoard.id, track);
+    await interaction.reply({ embeds: [successEmbed({ description: `❤️ Added **${track.info.title}** to Community Favorites!` })], ephemeral: true });
   },
 };
 

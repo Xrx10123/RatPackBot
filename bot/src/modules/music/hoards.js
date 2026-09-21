@@ -16,6 +16,19 @@ export function createHoard({ guildId, ownerId, name, isPublic = false }) {
   return row;
 }
 
+export const COMMUNITY_FAVORITES_NAME = 'Community Favorites';
+
+/** The shared, guild-wide "liked songs" hoard — created on first use, one per guild. */
+export function ensureCommunityFavorites(guildId) {
+  const existing = db.select().from(hoards).where(and(eq(hoards.guildId, guildId), eq(hoards.name, COMMUNITY_FAVORITES_NAME))).get();
+  if (existing) return existing;
+  return createHoard({ guildId, ownerId: `community:${guildId}`, name: COMMUNITY_FAVORITES_NAME, isPublic: true });
+}
+
+export function isTrackInHoard(hoardId, uri) {
+  return Boolean(db.select().from(hoardTracks).where(and(eq(hoardTracks.hoardId, hoardId), eq(hoardTracks.uri, uri))).get());
+}
+
 /** Hoards a user can see: their own (any visibility) + everyone else's public ones. */
 export function listVisibleHoards(guildId, userId) {
   return db
