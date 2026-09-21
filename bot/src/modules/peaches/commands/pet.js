@@ -1,6 +1,6 @@
 import { SlashCommandBuilder, PermissionFlagsBits, ChannelType } from 'discord.js';
 import { successEmbed, errorEmbed, infoEmbed, warnEmbed } from '../../../core/embeds.js';
-import { MOOD_DISPLAY } from '../variants.js';
+import { MOOD_DISPLAY, pickLine } from '../variants.js';
 import { getCurrentState, renamePeaches, getRenameCooldownRemaining, resetToContent } from '../state.js';
 import { getUserStats, getLeaderboard } from '../stats.js';
 import { getSpawnChannelIds, setSpawnChannelIds, updatePeachesConfig, ensurePeachesConfig } from '../config.js';
@@ -117,7 +117,7 @@ const SUBCOMMAND_HANDLERS = {
       embeds: [
         successEmbed({
           title: `${mood.emoji} ${state.name}`,
-          description: `${state.name} ${mood.flavor}\n\nLevel **${state.level}** · Mood: **${mood.label}**`,
+          description: `${state.name} ${pickLine(mood.flavor)}\n\nLevel **${state.level}** · Mood: **${mood.label}**`,
         }),
       ],
     };

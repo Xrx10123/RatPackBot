@@ -1,7 +1,6 @@
 import { logger } from '../../core/logger.js';
-import { successEmbed } from '../../core/embeds.js';
 import { ensurePeachesConfig, getSpawnChannelIds } from './config.js';
-import { getCurrentState } from './state.js';
+import { getCurrentState, getLeastRecentInteractors } from './state.js';
 import {
   getActiveMischiefInChannel,
   createMischief,
@@ -10,42 +9,51 @@ import {
   listUnresolvedForGuild,
   resolveMischief,
 } from './mischiefStore.js';
-import { buildTurdPayload, buildHolePayload, buildShredPayload, buildWallsPayload, buildRulerPayload } from './ui/mischiefEmbeds.js';
+import {
+  buildTurdPayload,
+  buildHolePayload,
+  buildShredPayload,
+  buildWallsPayload,
+  buildRulerPayload,
+  buildCrumbsPayload,
+  buildGiftPayload,
+  buildBitePayload,
+} from './ui/mischiefEmbeds.js';
 import { pickEmojiToSteal } from './crossModule.js';
-import { getMediaForMoment, applyMedia } from './media.js';
 
 const FREQ_MULTIPLIER = { low: 0.5, normal: 1, high: 1.75 };
 const BASE_CHANCE = { thriving: 0.15, content: 0.08, restless: 0.2, grumpy: 0.3, neglected: 0.5 };
 const MISCHIEF_TTL_MS = 90 * 60 * 1000; // "auto-expire after 1-2 hours" guardrail
 const TURD_STALE_MS = 30 * 60 * 1000;
+const BITE_CHANCE = 0.25; // occasional alternative to the escalation ladder while neglected
 
-const GIFT_REACTIONS = ['🎁', '✨', '🐀', '💚', '🧀'];
+const CRUMBS_LINES = [
+  (name) => `🧀 ${name} left you a snack. You're welcome.`,
+  (name) => `🧀 ${name} dropped some crumbs on the way through. A gift, apparently.`,
+  (name) => `🧀 ${name} generously donated a half-eaten cracker to the cause.`,
+];
 
-async function pickRandomRecentMessage(channel) {
-  const messages = await channel.messages.fetch({ limit: 20 }).catch(() => null);
-  if (!messages) return null;
-  const human = [...messages.values()].filter((m) => !m.author.bot);
-  if (human.length === 0) return null;
-  return human[Math.floor(Math.random() * human.length)];
-}
+const BITE_LINES = [
+  (name, mention) => `🐀 ${name} has had enough of being ignored. She bites ${mention}.`,
+  (name, mention) => `🐀 ${name} sinks her teeth into ${mention}. That's what you get for staying away so long.`,
+  (name, mention) => `🐀 Out of nowhere, ${name} bites ${mention}. Maybe visit more often?`,
+];
 
 async function triggerAmbientMischief(client, channel, guildId, state) {
   if (state.mood === 'thriving') {
     const row = createMischief({ guildId, channelId: channel.id, type: 'crumbs', expiresInMs: MISCHIEF_TTL_MS });
-    resolveMischief(row.id);
-    const payload = await applyMedia({ embeds: [successEmbed({ description: `🧀 ${state.name} left you a snack. You're welcome.` })] }, getMediaForMoment('thriving'));
-    await channel.send(payload).catch(() => {});
+    const line = CRUMBS_LINES[Math.floor(Math.random() * CRUMBS_LINES.length)](state.name);
+    const payload = await buildCrumbsPayload(state.name, row.id, line);
+    const message = await channel.send(payload).catch(() => null);
+    if (message) setMischiefMessageId(row.id, message.id);
     return;
   }
 
   // content
   const row = createMischief({ guildId, channelId: channel.id, type: 'gift', expiresInMs: MISCHIEF_TTL_MS });
-  resolveMischief(row.id);
-  const target = await pickRandomRecentMessage(channel);
-  if (target) {
-    const emoji = GIFT_REACTIONS[Math.floor(Math.random() * GIFT_REACTIONS.length)];
-    await target.react(emoji).catch(() => {});
-  }
+  const payload = await buildGiftPayload(state.name, row.id);
+  const message = await channel.send(payload).catch(() => null);
+  if (message) setMischiefMessageId(row.id, message.id);
 }
 
 async function triggerInteractiveMischief(client, channel, guildId, state, type) {
@@ -79,6 +87,27 @@ async function triggerEscalation(client, channel, guildId, state) {
   if (message) setMischiefMessageId(row.id, message.id);
 }
 
+/**
+ * Occasional alternative to the escalation ladder while neglected: bites a
+ * random pick from whoever's interacted least recently (not just anyone —
+ * someone who's actually engaged before). Ambient like crumbs/gift, but
+ * still resolved immediately — the "Ouch!" button below is a non-exclusive
+ * reaction (anyone can click it), not a first-click-wins resolution.
+ */
+async function triggerBite(client, channel, guildId, state) {
+  const candidates = getLeastRecentInteractors(guildId, 5);
+  if (candidates.length === 0) return false;
+
+  const targetId = candidates[Math.floor(Math.random() * candidates.length)];
+  const row = createMischief({ guildId, channelId: channel.id, type: 'bite', expiresInMs: MISCHIEF_TTL_MS });
+  resolveMischief(row.id);
+
+  const line = BITE_LINES[Math.floor(Math.random() * BITE_LINES.length)](state.name, `<@${targetId}>`);
+  const payload = await buildBitePayload(state.name, `<@${targetId}>`, line);
+  await channel.send(payload).catch(() => {});
+  return true;
+}
+
 async function tryMischiefForGuild(client, guildId) {
   const config = ensurePeachesConfig(guildId);
   if (!config.mischiefEnabled) return;
@@ -101,6 +130,7 @@ async function tryMischiefForGuild(client, guildId) {
   if (!channel) return;
 
   if (isEscalation) {
+    if (Math.random() < BITE_CHANCE && (await triggerBite(client, channel, guildId, state))) return;
     await triggerEscalation(client, channel, guildId, state);
   } else if (state.mood === 'restless') {
     await triggerInteractiveMischief(client, channel, guildId, state, 'turd');

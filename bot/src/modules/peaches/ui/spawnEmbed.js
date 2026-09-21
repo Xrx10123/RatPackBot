@@ -1,6 +1,6 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import { successEmbed } from '../../../core/embeds.js';
-import { VARIANTS, MOOD_DISPLAY } from '../variants.js';
+import { VARIANTS, MOOD_DISPLAY, pickLine } from '../variants.js';
 import { getMediaForMoment, applyMedia } from '../media.js';
 
 export async function buildSpawnPayload(state, spawn) {
@@ -8,8 +8,8 @@ export async function buildSpawnPayload(state, spawn) {
   const mood = MOOD_DISPLAY[state.mood] ?? MOOD_DISPLAY.content;
 
   const lines = [
-    `🐀 **${state.name}** ${variant.intro ?? 'has appeared!'}`,
-    `${mood.emoji} ${state.name} ${mood.flavor}`,
+    `🐀 **${state.name}** ${variant.intro ? pickLine(variant.intro) : 'has appeared!'}`,
+    `${mood.emoji} ${state.name} ${pickLine(mood.flavor)}`,
     '',
     '🧀 Feed · 💧 Water · 🎾 Play · 😴 Let Her Sleep · 🧼 Clean Cage',
   ];

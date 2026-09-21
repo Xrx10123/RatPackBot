@@ -153,6 +153,25 @@ export function getFirstInteractor(spawnId) {
   return db.select().from(peachesInteractions).where(eq(peachesInteractions.spawnId, spawnId)).orderBy(peachesInteractions.createdAt).limit(1).get();
 }
 
+/**
+ * Users who've ever fed/watered/played/slept/cleaned for this guild, ranked
+ * by their most recent interaction — oldest (most neglectful) first. Used to
+ * pick a bite target: someone who's actually engaged before, just not
+ * recently, rather than a totally uninvolved server member.
+ */
+export function getLeastRecentInteractors(guildId, limit = 5) {
+  return db
+    .select({ userId: peachesInteractions.userId })
+    .from(peachesInteractions)
+    .innerJoin(peachesSpawns, eq(peachesInteractions.spawnId, peachesSpawns.id))
+    .where(eq(peachesSpawns.guildId, guildId))
+    .groupBy(peachesInteractions.userId)
+    .orderBy(sql`MAX(${peachesInteractions.createdAt}) ASC`)
+    .limit(limit)
+    .all()
+    .map((row) => row.userId);
+}
+
 /** Small ad-hoc stat nudges (mischief rewards, etc.) outside the fixed action-effect table. */
 export function nudgeStats(guildId, deltas) {
   const state = getCurrentState(guildId);

@@ -1,5 +1,5 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
-import { warnEmbed, infoEmbed, errorEmbed } from '../../../core/embeds.js';
+import { warnEmbed, infoEmbed, errorEmbed, successEmbed } from '../../../core/embeds.js';
 import { getMediaForMoment, applyMedia } from '../media.js';
 
 export async function buildTurdPayload(name, mischiefId, { stale = false } = {}) {
@@ -10,6 +10,28 @@ export async function buildTurdPayload(name, mischiefId, { stale = false } = {})
     new ButtonBuilder().setCustomId(`peaches:mischief_clean:${mischiefId}`).setEmoji('🧹').setLabel('Clean Up').setStyle(ButtonStyle.Secondary),
   );
   return applyMedia({ embeds: [warnEmbed({ description })], components: [row] }, getMediaForMoment('turd'));
+}
+
+export async function buildCrumbsPayload(name, mischiefId, line) {
+  const row = new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setCustomId(`peaches:crumbs_thank:${mischiefId}`).setEmoji('🧀').setLabel('Thanks!').setStyle(ButtonStyle.Success),
+  );
+  return applyMedia({ embeds: [successEmbed({ description: line })], components: [row] }, getMediaForMoment('thriving'));
+}
+
+export async function buildGiftPayload(name, mischiefId) {
+  const row = new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setCustomId(`peaches:gift_thank:${mischiefId}`).setEmoji('🙏').setLabel('Thank Her').setStyle(ButtonStyle.Success),
+    new ButtonBuilder().setCustomId(`peaches:gift_decline:${mischiefId}`).setEmoji('🙅').setLabel('Decline').setStyle(ButtonStyle.Secondary),
+  );
+  return applyMedia({ embeds: [successEmbed({ description: `🎁 ${name} wants to give you something.` })], components: [row] }, getMediaForMoment('gift'));
+}
+
+export async function buildBitePayload(name, mention, line) {
+  const row = new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setCustomId('peaches:bite_react').setEmoji('😤').setLabel('Ouch!').setStyle(ButtonStyle.Secondary),
+  );
+  return applyMedia({ content: mention, embeds: [errorEmbed({ description: line })], components: [row] }, getMediaForMoment('grumpy'));
 }
 
 export async function buildHolePayload(name, mischiefId) {

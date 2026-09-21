@@ -75,4 +75,40 @@ export const mischiefButtons = {
       components: [],
     });
   },
+
+  async crumbs_thank(interaction, mischiefId) {
+    const row = getMischiefById(mischiefId);
+    if (!row || row.resolved) return alreadyHandled(interaction);
+
+    resolveMischief(row.id, interaction.user.id);
+    nudgeStats(interaction.guildId, { happiness: 5 });
+
+    await interaction.update({ embeds: [successEmbed({ description: `🐀 ${interaction.user} says thanks. She seems pleased with herself.` })], components: [] });
+  },
+
+  async gift_thank(interaction, mischiefId) {
+    const row = getMischiefById(mischiefId);
+    if (!row || row.resolved) return alreadyHandled(interaction);
+
+    resolveMischief(row.id, interaction.user.id);
+    const state = nudgeStats(interaction.guildId, { happiness: 10 });
+
+    await interaction.update({ embeds: [successEmbed({ description: `🙏 ${interaction.user} accepts the gift graciously. ${state.name} preens with pride.` })], components: [] });
+  },
+
+  async gift_decline(interaction, mischiefId) {
+    const row = getMischiefById(mischiefId);
+    if (!row || row.resolved) return alreadyHandled(interaction);
+
+    resolveMischief(row.id, interaction.user.id);
+    const state = getCurrentState(interaction.guildId);
+
+    await interaction.update({ embeds: [infoEmbed({ description: `🙅 ${interaction.user} politely declines. ${state.name} looks a little hurt but shrugs it off.` })], components: [] });
+  },
+
+  // Non-exclusive — anyone can click it, no mischief row to resolve. Just a shared reaction.
+  async bite_react(interaction) {
+    const state = getCurrentState(interaction.guildId);
+    await interaction.reply({ embeds: [infoEmbed({ description: `😤 Noted. ${state.name} does not appear to regret it.` })], ephemeral: true });
+  },
 };
