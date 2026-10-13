@@ -6,7 +6,7 @@ Self-hosted, modular, multi-guild. Built with Node.js 22, discord.js v14, and La
 
 ## What it does
 
-- **Music** — `/play`, `/search`, queue management (`/queue`, `/remove`, `/move`), playlists ("hoards"), audio effects, lyrics, and a live control panel posted right in the voice channel's chat (or your music channel, if the bot can't post there).
+- **Music** — `/play`, `/search`, queue management (`/queue`, `/remove`, `/move`), playlists ("hoards"), audio effects, lyrics, and a live control panel posted right in the voice channel's chat (or your music channel, if the bot can't post there). Turn on `/musicconfig autoplay` and when the queue runs out it keeps going with related songs (`/stop` still stops). `/musicstats` shows the server's most-played songs, artists and DJs, and `/musicquiz` is a guess-the-song game built from what you've actually listened to, with cheese for the winners.
 - **Setup** — a guided `/setup` wizard that configures channels, timezone, and notification preferences, with one-click auto-creation of the channel category.
 - **Game stats & news** — `/stats`, `/steam`, and a Steam-appid-based news tracker (`/news`) that follows patch notes for whatever games your server cares about.
 - **Outage monitoring** — `/outage` and `/status` watch real services (Discord, Steam, Cloudflare, and anything else on Atlassian Statuspage) and ping the server when something goes down or recovers.

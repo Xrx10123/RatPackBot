@@ -36,6 +36,12 @@ Peaches, plus social features, with Peaches as the voice of the whole bot.
 - Birthdays: `/birthday set|remove|list|role`, posted in the new Birthdays & Reminders channel at local midnight, with a cheese gift, wish buttons and an optional birthday role for the day
 - Reminders: `/remind me|list|cancel` (`in 2h`, `at 9pm`, `tomorrow 8am`), posted in-channel by Peaches; survives restarts
 
-## Later / ideas parking lot
-- Music: autoplay/radio when the queue ends, "guess the song", listening stats
-- Game night: "what should we play" picker from a saved list, team randomizer
+## Phase 6: More of everything — ✅ done
+- Music: autoplay (YouTube mix → same artist → server favourites), `/musicstats`, `/musicquiz` guess-the-song
+- Game night: `/games add|remove|list|pick|vote`, `/teams`
+- Winter season (December): Santa hat, Frosty Peaches, present unwrapping, winter collectibles and shop stock
+
+## Ideas parking lot
+- Peaches outfits drawn into her GIF art (not just emoji)
+- More seasons (Valentine's, spring, summer)
+- Steam sale / free-game alerts for games on the game night list

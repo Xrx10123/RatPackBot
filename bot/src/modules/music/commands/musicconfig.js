@@ -26,6 +26,12 @@ export const musicconfig = {
         .setName('247')
         .setDescription('Toggle 24/7 mode (stay connected even when the channel empties).')
         .addBooleanOption((o) => o.setName('enabled').setDescription('On or off').setRequired(true)),
+    )
+    .addSubcommand((sub) =>
+      sub
+        .setName('autoplay')
+        .setDescription('When the queue runs out, keep playing related songs.')
+        .addBooleanOption((o) => o.setName('enabled').setDescription('On or off').setRequired(true)),
     ),
 
   async execute(interaction) {
@@ -45,6 +51,7 @@ const SUBCOMMAND_HANDLERS = {
             `DJ role: ${config?.djRoleId ? `<@&${config.djRoleId}>` : '*none*'}`,
             `Vote-skip threshold: **${config?.voteSkipThreshold ?? 50}%**`,
             `24/7 mode: **${config?.twentyFourSeven ? 'on' : 'off'}**`,
+            `Autoplay: **${config?.autoplay ? 'on' : 'off'}**`,
           ].join('\n'),
         }),
       ],
@@ -67,6 +74,16 @@ const SUBCOMMAND_HANDLERS = {
     updateGuildConfig(interaction.guildId, { voteSkipThreshold: percent });
     audit(interaction, `set the vote-skip threshold to **${percent}%**.`);
     await interaction.reply({ embeds: [successEmbed({ description: `🗳 Vote-skip threshold set to **${percent}%**.` })], ephemeral: true });
+  },
+
+  async autoplay(interaction) {
+    const enabled = interaction.options.getBoolean('enabled', true);
+    updateGuildConfig(interaction.guildId, { autoplay: enabled ? 1 : 0 });
+    audit(interaction, `turned autoplay **${enabled ? 'on' : 'off'}**.`);
+    await interaction.reply({
+      embeds: [successEmbed({ description: enabled ? '📻 Autoplay is **on** — when the queue runs out I\'ll keep going with related songs. `/stop` still stops.' : '📻 Autoplay is **off**.' })],
+      ephemeral: true,
+    });
   },
 
   async '247'(interaction) {

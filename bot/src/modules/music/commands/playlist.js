@@ -5,7 +5,7 @@ import { getLavalinkManager } from '../../../lavalink/manager.js';
 import { fuzzySearch } from '../../../utils/fuzzy.js';
 import { isUrl } from '../sources.js';
 import { isManager } from '../../../core/permissions.js';
-import { ensureConnectedPlayer, voiceConflictEmbed } from '../playerLifecycle.js';
+import { ensureConnectedPlayer, blockedEmbed } from '../playerLifecycle.js';
 import { escapeMarkdown } from '../../../utils/text.js';
 import {
   createHoard,
@@ -258,9 +258,10 @@ const SUBCOMMAND_HANDLERS = {
       return;
     }
 
-    const { player, conflictChannelId } = await ensureConnectedPlayer(interaction.guildId, voiceChannel);
+    const connection = await ensureConnectedPlayer(interaction.guildId, voiceChannel);
+    const { player } = connection;
     if (!player) {
-      await interaction.editReply({ embeds: [voiceConflictEmbed(conflictChannelId)] });
+      await interaction.editReply({ embeds: [blockedEmbed(connection)] });
       return;
     }
 

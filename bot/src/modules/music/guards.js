@@ -1,5 +1,6 @@
 import { getLavalinkManager } from '../../lavalink/manager.js';
 import { errorEmbed } from '../../core/embeds.js';
+import { QUIZ_BUSY_TEXT } from './playerLifecycle.js';
 
 /**
  * Shared precondition for playback-control commands: there must be an active
@@ -15,6 +16,11 @@ export async function requirePlayerInVoice(interaction) {
       embeds: [errorEmbed({ description: "🐀 Nothing's playing right now." })],
       ephemeral: true,
     });
+    return { ok: false };
+  }
+
+  if (player.get('quiz')) {
+    await interaction.reply({ embeds: [errorEmbed({ description: QUIZ_BUSY_TEXT })], ephemeral: true });
     return { ok: false };
   }
 

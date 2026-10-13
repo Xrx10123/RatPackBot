@@ -3,6 +3,8 @@ import { upsertPanel, stopProgressLoop, retirePanel } from '../modules/music/ui/
 import { getPanelRow, deletePanelRow, panelMessageChannelId } from '../modules/music/panelStore.js';
 import { getGuildConfig } from '../core/guildConfig.js';
 import { logger } from '../core/logger.js';
+import { recordPlay } from '../modules/music/plays.js';
+import { endQuizForGuild } from '../modules/music/quiz.js';
 
 const BRIDGE_NOTICE_TTL_MS = 30_000;
 const ALONE_DISCONNECT_GRACE_MS = 5 * 60 * 1000;
@@ -17,8 +19,16 @@ function humanMemberCount(channel) {
  * place rather than posting separate messages.
  */
 export function registerLavalinkEvents(manager, client) {
-  manager.on('trackStart', async (player) => {
+  manager.on('trackStart', async (player, track) => {
     player.set('voteSkips', new Set());
+    // Quiz snippets aren't real listening (and would give the answers away in /musicstats).
+    if (!player.get('quiz')) {
+      try {
+        recordPlay(player.guildId, track ?? player.queue.current);
+      } catch (err) {
+        logger.warn({ err }, 'Could not record play');
+      }
+    }
 
     const message = await upsertPanel(client, player);
     if (!message) return;
@@ -50,6 +60,7 @@ export function registerLavalinkEvents(manager, client) {
 
   manager.on('playerDestroy', async (player, reason) => {
     stopProgressLoop(player);
+    await endQuizForGuild(player.guildId, 'The music stopped — I got disconnected.').catch(() => {});
     clearDisconnectTimer(player);
     await retirePanel(client, player, reason).catch((err) => logger.warn({ err }, "Couldn't retire panel after player destroy"));
   });

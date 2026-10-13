@@ -5,7 +5,7 @@ import { checkChannelPermissions } from '../../../core/permissions.js';
 import { formatProgressBar } from '../../../utils/format.js';
 import { listPublicHoards, getHoardById, getHoardTracks, resolveHoardTracks, ensureCommunityFavorites, isTrackInHoard, addTrackToHoard } from '../hoards.js';
 import { getPanelRow, upsertPanelRow, deletePanelRow, panelMessageChannelId } from '../panelStore.js';
-import { skipOrEnd } from '../playerLifecycle.js';
+import { skipOrEnd, QUIZ_BUSY_TEXT } from '../playerLifecycle.js';
 import { componentText, escapeMarkdown } from '../../../utils/text.js';
 import { logger } from '../../../core/logger.js';
 import { buildQueuePage } from './queuePage.js';
@@ -109,6 +109,10 @@ function controlRows(player) {
 }
 
 export function buildPanelPayload(player) {
+  // Mid-quiz the panel would give the answer away — and its buttons would let someone skip the round.
+  if (player.get?.('quiz')) {
+    return { embeds: [infoEmbed({ title: '🎵 The Rat Nest', description: '🎶 **Guess the song** is on! No peeking — the title is a secret until the round ends.' })], components: [] };
+  }
   return {
     embeds: [player.queue.current ? nowPlayingEmbed(player) : idleEmbed()],
     components: controlRows(player),
@@ -230,6 +234,10 @@ function requirePlayer(interaction) {
 }
 
 async function requireSameVoice(interaction, player) {
+  if (player?.get('quiz')) {
+    await interaction.reply({ embeds: [errorEmbed({ description: QUIZ_BUSY_TEXT })], ephemeral: true });
+    return false;
+  }
   const memberChannelId = interaction.member.voice?.channelId;
   if (!player || memberChannelId !== player.voiceChannelId) {
     await interaction.reply({

@@ -26,6 +26,8 @@ export async function ensureConnectedPlayer(guildId, voiceChannel) {
     player = null;
   }
 
+  if (player?.get('quiz')) return { quizBusy: true };
+
   if (player && player.voiceChannelId !== voiceChannel.id) {
     const oldChannel = voiceChannel.guild.channels.cache.get(player.voiceChannelId);
     if (humanCount(oldChannel) > 0) return { conflictChannelId: player.voiceChannelId };
@@ -53,6 +55,13 @@ export async function ensureConnectedPlayer(guildId, voiceChannel) {
 
 export function voiceConflictEmbed(conflictChannelId) {
   return errorEmbed({ description: `🐀 I'm already playing for folks in <#${conflictChannelId}> — join them, or wait until they're done.` });
+}
+
+export const QUIZ_BUSY_TEXT = "🎶 There's a guess-the-song quiz going on — wait for it to finish (or end it with the 🛑 button).";
+
+/** The reason ensureConnectedPlayer() couldn't hand back a player. */
+export function blockedEmbed({ quizBusy, conflictChannelId }) {
+  return quizBusy ? errorEmbed({ description: QUIZ_BUSY_TEXT }) : voiceConflictEmbed(conflictChannelId);
 }
 
 /**

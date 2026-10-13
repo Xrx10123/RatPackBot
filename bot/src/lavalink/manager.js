@@ -4,6 +4,7 @@ import { logger } from '../core/logger.js';
 import { infoEmbed } from '../core/embeds.js';
 import { readSavedSessionId, saveSessionId } from './session.js';
 import { getLatestPanelRowForGuild, panelMessageChannelId } from '../modules/music/panelStore.js';
+import { autoPlayFunction } from '../modules/music/autoplay.js';
 
 const RESUME_TIMEOUT_SECONDS = 300;
 
@@ -31,6 +32,9 @@ export function createLavalinkManager(client) {
       // the player down. Without this lavalink-client keeps a zombie player
       // with no voice channel, and every later /play fails on it until a restart.
       onDisconnect: { destroyPlayer: true, autoReconnect: false },
+      // Autoplay (when a server has it on in /musicconfig). Skipped after /stop.
+      onEmptyQueue: { autoPlayFunction },
+      minAutoPlayMs: 10_000,
     },
   });
 

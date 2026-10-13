@@ -3,7 +3,7 @@ import { ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder }
 import { infoEmbed, successEmbed, errorEmbed } from '../../../core/embeds.js';
 import { checkChannelPermissions } from '../../../core/permissions.js';
 import { formatDuration } from '../../../utils/format.js';
-import { ensureConnectedPlayer, markBridgeNotice, voiceConflictEmbed } from '../playerLifecycle.js';
+import { ensureConnectedPlayer, markBridgeNotice, blockedEmbed } from '../playerLifecycle.js';
 import { componentText, escapeMarkdown } from '../../../utils/text.js';
 import { isUrl } from '../sources.js';
 
@@ -102,9 +102,10 @@ export const searchHandlers = {
     const track = entry.tracks[Number(indexStr)];
     // Connecting to voice + starting playback can outlast the 3s window.
     await interaction.deferUpdate();
-    const { player, conflictChannelId } = await ensureConnectedPlayer(interaction.guildId, voiceChannel);
+    const connection = await ensureConnectedPlayer(interaction.guildId, voiceChannel);
+    const { player } = connection;
     if (!player) {
-      await interaction.editReply({ embeds: [voiceConflictEmbed(conflictChannelId)], components: [] });
+      await interaction.editReply({ embeds: [blockedEmbed(connection)], components: [] });
       return;
     }
     markBridgeNotice(player, interaction.channelId);
@@ -135,9 +136,10 @@ export const searchHandlers = {
 
     const track = entry.tracks[Number(indexStr)];
     await interaction.deferUpdate();
-    const { player, conflictChannelId } = await ensureConnectedPlayer(interaction.guildId, voiceChannel);
+    const connection = await ensureConnectedPlayer(interaction.guildId, voiceChannel);
+    const { player } = connection;
     if (!player) {
-      await interaction.editReply({ embeds: [voiceConflictEmbed(conflictChannelId)], components: [] });
+      await interaction.editReply({ embeds: [blockedEmbed(connection)], components: [] });
       return;
     }
     markBridgeNotice(player, interaction.channelId);

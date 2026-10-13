@@ -14,6 +14,8 @@ import { effects } from './commands/effects.js';
 import { lyrics } from './commands/lyrics.js';
 import { musicconfig } from './commands/musicconfig.js';
 import { remove } from './commands/remove.js';
+import { musicstats } from './commands/musicstats.js';
+import { musicquiz, quizButtons } from './quiz.js';
 import { move } from './commands/move.js';
 import { searchHandlers } from './ui/search.js';
 import { panelButtons, panelSelects, upsertPanel } from './ui/panel.js';
@@ -23,9 +25,10 @@ import { buildQueuePage } from './ui/queuePage.js';
 
 export default {
   name: 'music',
-  commands: [play, search, queue, remove, move, skip, pause, resume, stop, volume, loop, shuffle, seek, playlist, effects, lyrics, musicconfig],
+  commands: [play, search, queue, remove, move, skip, pause, resume, stop, volume, loop, shuffle, seek, playlist, effects, lyrics, musicconfig, musicstats, musicquiz],
   buttons: {
     ...panelButtons,
+    ...quizButtons,
     search_playnow: searchHandlers.search_playnow,
     search_addqueue: searchHandlers.search_addqueue,
     async 'queue_page'(interaction, pageStr) {

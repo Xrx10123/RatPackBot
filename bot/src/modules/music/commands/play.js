@@ -3,7 +3,7 @@ import { successEmbed, errorEmbed, warnEmbed } from '../../../core/embeds.js';
 import { checkChannelPermissions } from '../../../core/permissions.js';
 import { resolveSearchQuery, isUrl } from '../sources.js';
 import { flavor, FLAVOR } from '../../../utils/ratpack.js';
-import { ensureConnectedPlayer, markBridgeNotice, voiceConflictEmbed } from '../playerLifecycle.js';
+import { ensureConnectedPlayer, markBridgeNotice, blockedEmbed } from '../playerLifecycle.js';
 import { escapeMarkdown } from '../../../utils/text.js';
 
 export const play = {
@@ -37,9 +37,10 @@ export const play = {
     await interaction.deferReply({ ephemeral: true });
 
     const query = interaction.options.getString('query', true);
-    const { player, conflictChannelId } = await ensureConnectedPlayer(interaction.guildId, voiceChannel);
+    const connection = await ensureConnectedPlayer(interaction.guildId, voiceChannel);
+    const { player } = connection;
     if (!player) {
-      await interaction.editReply({ embeds: [voiceConflictEmbed(conflictChannelId)] });
+      await interaction.editReply({ embeds: [blockedEmbed(connection)] });
       return;
     }
     markBridgeNotice(player, interaction.channelId);

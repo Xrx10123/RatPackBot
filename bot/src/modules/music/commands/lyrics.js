@@ -2,6 +2,7 @@ import { SlashCommandBuilder } from 'discord.js';
 import { getLavalinkManager } from '../../../lavalink/manager.js';
 import { infoEmbed, errorEmbed, warnEmbed } from '../../../core/embeds.js';
 import { fetchJson } from '../../../utils/httpJson.js';
+import { QUIZ_BUSY_TEXT } from '../playerLifecycle.js';
 
 const LRCLIB_BASE = 'https://lrclib.net/api';
 const EMBED_DESCRIPTION_LIMIT = 4000;
@@ -63,6 +64,10 @@ export const lyrics = {
     } else {
       const manager = getLavalinkManager();
       const player = manager.getPlayer(interaction.guildId);
+      if (player?.get('quiz')) {
+        await interaction.editReply({ embeds: [warnEmbed({ description: QUIZ_BUSY_TEXT })] });
+        return;
+      }
       const current = player?.queue.current;
       if (!current) {
         await interaction.editReply({ embeds: [warnEmbed({ description: "🐀 Nothing's playing — give me a song with `/lyrics query:`." })] });

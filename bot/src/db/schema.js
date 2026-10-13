@@ -18,6 +18,7 @@ export const guilds = sqliteTable('guilds', {
   twentyFourSeven: integer('twenty_four_seven').default(0),
   socialChannelId: text('social_channel_id'),
   birthdayRoleId: text('birthday_role_id'),
+  autoplay: integer('autoplay').default(0),
 });
 
 // --- Music --------------------------------------------------------------
@@ -279,4 +280,19 @@ export const gamenightPolls = sqliteTable('gamenight_polls', {
   votes: text('votes').notNull().default('{}'),
   endsAt: integer('ends_at').notNull(),
   closed: integer('closed').notNull().default(0),
+});
+
+// --- Music history ------------------------------------------------------------
+
+export const musicPlays = sqliteTable('music_plays', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  guildId: text('guild_id').notNull(),
+  title: text('title').notNull(),
+  author: text('author'),
+  uri: text('uri'),
+  source: text('source'),
+  requesterId: text('requester_id'),
+  duration: integer('duration'),
+  isStream: integer('is_stream').notNull().default(0),
+  playedAt: integer('played_at').notNull(),
 });
