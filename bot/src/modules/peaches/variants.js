@@ -45,6 +45,15 @@ export const VARIANTS = {
     season: 'halloween',
     intro: ['drifts in under a bedsheet. Boo.', 'is haunting this channel. Politely.', 'phases through the wall, rattling a tiny chain.'],
   },
+  // Winter-only. Bundled up and in a hurry to get back somewhere warm.
+  frosty: {
+    label: 'Frosty Peaches',
+    multiplier: 1.5,
+    expiresInMs: 10 * 60 * 1000,
+    color: 0x9fd8ff,
+    season: 'winter',
+    intro: ['bursts in from the snow, earmuffs askew.', 'has been building a snowman. It looks like her.', 'is shivering dramatically. Hot cocoa would fix this.'],
+  },
 };
 
 export const MOOD_DISPLAY = {

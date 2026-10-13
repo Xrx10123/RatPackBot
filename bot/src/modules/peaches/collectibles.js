@@ -40,6 +40,13 @@ export const ITEMS = [
   { key: 'witch_hat', name: 'Spare Witch Hat', emoji: '🧙', rarity: 'rare', season: 'halloween', blurb: 'Her backup costume. An honour.' },
   { key: 'ghost_sheet', name: 'Ghost Peaches\' Sheet', emoji: '👻', rarity: 'legendary', season: 'halloween', blurb: 'Still has eye holes. Still warm.' },
 
+  { key: 'snowflake', name: 'Perfect Snowflake', emoji: '❄️', rarity: 'common', season: 'winter', blurb: 'Somehow not melting. Do not question it.' },
+  { key: 'candy_cane', name: 'Candy Cane', emoji: '🍭', rarity: 'common', season: 'winter', blurb: 'Pre-licked. Lovingly.' },
+  { key: 'gingerbread_rat', name: 'Gingerbread Rat', emoji: '🍪', rarity: 'uncommon', season: 'winter', blurb: 'A self-portrait. She ate the tail.' },
+  { key: 'tiny_stocking', name: 'Tiny Stocking', emoji: '🧦', rarity: 'uncommon', season: 'winter', blurb: 'Big enough for exactly one cheese cube.' },
+  { key: 'snow_globe', name: 'Snow Globe', emoji: '🔮', rarity: 'rare', season: 'winter', blurb: 'There\'s a tiny rat inside. Shake it gently.' },
+  { key: 'golden_bell', name: 'Golden Sleigh Bell', emoji: '🔔', rarity: 'legendary', season: 'winter', blurb: 'Jingles once a year, on its own, at midnight.' },
+
   { key: 'cake_slice', name: 'Birthday Cake Slice', emoji: '🍰', rarity: 'rare', season: 'birthday', blurb: 'A slice of her birthday cake. One per year.' },
 ];
 

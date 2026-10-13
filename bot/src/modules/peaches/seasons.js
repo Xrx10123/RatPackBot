@@ -17,6 +17,19 @@ export const SEASONS = {
     costume: ['is wearing a tiny witch hat. It does not fit. She does not care.', 'has a pumpkin pail and expectations.', 'is dressed as a very small, very serious witch.'],
     statusLine: '🧙 She\'s in her witch hat for spooky season.',
     media: 'halloween',
+    // The extra button on every spawn during this season (handled in handlers/eventButtons.js).
+    button: { action: 'trickortreat', emoji: '🎃', label: 'Trick or Treat!', hint: '🍬 Trick or treat? Everyone gets one knock per visit.' },
+  },
+  winter: {
+    label: 'Winter',
+    emoji: '🎄',
+    color: 0x2e8b57,
+    start: [12, 1],
+    end: [12, 31],
+    costume: ['is wearing a Santa hat three sizes too big.', 'has wrapped presents. They are all cheese. You can tell from the shape.', 'is humming something festive and slightly off-key.'],
+    statusLine: '🎅 She\'s in her Santa hat for the holidays.',
+    media: 'winter',
+    button: { action: 'unwrap', emoji: '🎁', label: 'Unwrap a present!', hint: '🎁 She\'s left presents under the tree — one each per visit.' },
   },
 };
 

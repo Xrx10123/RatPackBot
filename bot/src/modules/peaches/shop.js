@@ -17,6 +17,8 @@ export const SHOP_ITEMS = [
   { key: 'bubble_bath', type: 'treat', name: 'Bubble Bath', emoji: '🛁', price: 20, effects: { cleanliness: 40 }, blurb: 'She acts offended. She is secretly delighted.' },
   { key: 'fancy_brie', type: 'treat', name: 'Fancy Brie', emoji: '🥂', price: 35, effects: { hunger: 30, thirst: 10, happiness: 15 }, blurb: 'Imported. Pretentious. Delicious.' },
   { key: 'cheese_board', type: 'treat', name: 'Royal Cheese Board', emoji: '🍽️', price: 90, effects: { hunger: 40, thirst: 40, happiness: 40, energy: 40, cleanliness: 40 }, blurb: 'Everything. All at once. A feast fit for a queen.' },
+  { key: 'hot_cocoa', type: 'treat', name: 'Hot Cocoa', emoji: '☕', price: 15, season: 'winter', effects: { thirst: 20, happiness: 15 }, blurb: 'Extra marshmallows. She insisted.' },
+  { key: 'gingerbread', type: 'treat', name: 'Gingerbread Cookie', emoji: '🍪', price: 20, season: 'winter', effects: { hunger: 20, happiness: 15 }, blurb: 'Warm from the oven. The oven is a lightbulb.' },
   { key: 'pumpkin_pie', type: 'treat', name: 'Pumpkin Pie Slice', emoji: '🥧', price: 25, season: 'halloween', effects: { hunger: 25, happiness: 15 }, blurb: 'Seasonal. Extremely seasonal.' },
 
   // Cosmetics — hats
@@ -26,6 +28,8 @@ export const SHOP_ITEMS = [
   { key: 'top_hat', type: 'cosmetic', slot: 'hat', name: 'Top Hat', emoji: '🎩', price: 80, blurb: 'For distinguished vermin.' },
   { key: 'gold_crown', type: 'cosmetic', slot: 'hat', name: 'Gold Crown', emoji: '👑', price: 400, blurb: 'She always knew she was royalty. Now everyone does.' },
   { key: 'pumpkin_hat', type: 'cosmetic', slot: 'hat', name: 'Pumpkin Hat', emoji: '🎃', price: 70, season: 'halloween', blurb: 'Hollowed out. Smells like pie.' },
+  { key: 'santa_hat', type: 'cosmetic', slot: 'hat', name: 'Santa Hat', emoji: '🎅', price: 70, season: 'winter', blurb: 'Pom-pom included. Dignity not included.' },
+  { key: 'reindeer_antlers', type: 'cosmetic', slot: 'hat', name: 'Reindeer Antlers', emoji: '🦌', price: 60, season: 'winter', blurb: 'She is now the fastest reindeer. She has decided.' },
   { key: 'devil_horns', type: 'cosmetic', slot: 'hat', name: 'Devil Horns', emoji: '😈', price: 60, season: 'halloween', blurb: 'Honestly? Accurate.' },
 
   // Cosmetics — accessories
@@ -34,6 +38,7 @@ export const SHOP_ITEMS = [
   { key: 'sunglasses', type: 'cosmetic', slot: 'accessory', name: 'Sunglasses', emoji: '🕶️', price: 75, blurb: 'Too cool for the sewer.' },
   { key: 'pearl_necklace', type: 'cosmetic', slot: 'accessory', name: 'Pearl Necklace', emoji: '📿', price: 120, blurb: 'Real pearls. Do not ask.' },
   { key: 'hero_cape', type: 'cosmetic', slot: 'accessory', name: 'Hero Cape', emoji: '🦸', price: 150, blurb: 'Not every hero wears a cape. This one does.' },
+  { key: 'ugly_sweater', type: 'cosmetic', slot: 'accessory', name: 'Ugly Holiday Sweater', emoji: '🧶', price: 80, season: 'winter', blurb: 'It has a cheese wheel on it. It lights up.' },
   { key: 'bat_wings', type: 'cosmetic', slot: 'accessory', name: 'Bat Wings', emoji: '🦇', price: 90, season: 'halloween', blurb: 'She cannot fly. She is trying anyway.' },
 ];
 

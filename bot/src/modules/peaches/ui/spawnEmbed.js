@@ -20,11 +20,12 @@ export async function buildSpawnPayload(state, spawn, { now = new Date() } = {})
   const season = seasonKey ? SEASONS[seasonKey] : null;
 
   const lines = [`🐀 **${state.name}** ${variant.intro ? pickLine(variant.intro) : 'has appeared!'}`];
-  if (season && spawn.variant !== 'ghost') lines.push(`${season.emoji} ${state.name} ${pickLine(season.costume)}`);
+  // The season's own variant (Ghost, Frosty) is its costume already.
+  if (season && variant.season !== seasonKey) lines.push(`${season.emoji} ${state.name} ${pickLine(season.costume)}`);
   const outfit = outfitLine(spawn.guildId);
   if (outfit) lines.push(outfit);
   lines.push(`${mood.emoji} ${state.name} ${pickLine(mood.flavor)}`, '', '🧀 Feed · 💧 Water · 🎾 Play · 😴 Let Her Sleep · 🧼 Clean Cage');
-  if (seasonKey === 'halloween') lines.push('🍬 Trick or treat? Everyone gets one knock per visit.');
+  if (season?.button) lines.push(season.button.hint);
 
   const worn = outfitEmojis(spawn.guildId);
   const title = `${season ? `${season.emoji} ` : ''}${variant.label}${worn ? ` ${worn}` : ''} has appeared!`;
@@ -41,11 +42,10 @@ export async function buildSpawnPayload(state, spawn, { now = new Date() } = {})
       new ButtonBuilder().setCustomId(`peaches:clean:${spawn.id}`).setEmoji('🧼').setLabel('Clean Cage').setStyle(ButtonStyle.Secondary),
     ),
   ];
-  if (seasonKey === 'halloween') {
+  if (season?.button) {
+    const { action, emoji, label } = season.button;
     rows.push(
-      new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId(`peaches:trickortreat:${spawn.id}`).setEmoji('🎃').setLabel('Trick or Treat!').setStyle(ButtonStyle.Danger),
-      ),
+      new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId(`peaches:${action}:${spawn.id}`).setEmoji(emoji).setLabel(label).setStyle(ButtonStyle.Danger)),
     );
   }
 

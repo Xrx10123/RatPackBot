@@ -10,6 +10,7 @@ const VARIANTS = [
   { variant: 'sneaky', weight: 7.5 },
   { variant: 'queen', weight: 7.5 },
   { variant: 'ghost', weight: 20, season: 'halloween' },
+  { variant: 'frosty', weight: 20, season: 'winter' },
 ];
 
 /** Seasonal variants only roll while their season is active. */

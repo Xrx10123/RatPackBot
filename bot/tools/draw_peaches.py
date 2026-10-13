@@ -207,8 +207,85 @@ def birthday(img, t):
     party_hat(d, hx + 2, hy + 4, t)
 
 
+def winter_sky(img, t):
+    d = ImageDraw.Draw(img)
+    for y in range(H * S):
+        u = y / (H * S)
+        d.line([0, y, W * S, y], fill=(int(24 + 30 * u), int(40 + 40 * u), int(86 + 40 * u)))
+    d.rectangle([0, s(200), W * S, H * S], fill=(236, 244, 255))  # snow ground
+    d.ellipse(box(60, 206, 90, 14), fill=(250, 252, 255))
+    d.ellipse(box(250, 208, 110, 12), fill=(250, 252, 255))
+    return d
+
+
+def snowfall(d, t, count=34):
+    for i in range(count):
+        x = (i * 47 + 13 * math.sin(t * 2 * math.pi + i)) % W
+        y = ((i * 29) + t * H) % H
+        r = 1.6 + (i % 3) * 0.8
+        d.ellipse(box(x, y, r, r), fill=(255, 255, 255))
+
+
+def santa_hat(d, x, y, t):
+    flop = math.sin(t * 2 * math.pi) * 4
+    d.polygon([(s(x - 20), s(y)), (s(x + 18), s(y)), (s(x + 30 + flop), s(y - 26)), (s(x + 2), s(y - 40))], fill=(214, 40, 48))
+    d.ellipse(box(x + 32 + flop, y - 26, 7, 7), fill=(255, 255, 255))
+    d.rounded_rectangle([s(x - 24), s(y - 6), s(x + 22), s(y + 6)], radius=s(6), fill=(255, 255, 255))
+
+
+def present(d, x, y, w, h, color, ribbon):
+    d.rectangle([s(x - w), s(y - h), s(x + w), s(y + h)], fill=color)
+    d.rectangle([s(x - 3), s(y - h), s(x + 3), s(y + h)], fill=ribbon)
+    d.rectangle([s(x - w), s(y - 3), s(x + w), s(y + 3)], fill=ribbon)
+    d.ellipse(box(x - 7, y - h - 5, 7, 5), fill=ribbon)
+    d.ellipse(box(x + 7, y - h - 5, 7, 5), fill=ribbon)
+
+
+def earmuffs_scarf(d, hx, hy, cx, cy, t):
+    d.arc([s(hx - 34), s(hy - 34), s(hx + 18), s(hy + 6)], 200, 340, fill=(90, 90, 110), width=s(4))
+    d.ellipse(box(hx - 8, hy - 26, 12, 12), fill=(120, 200, 255))  # earmuff over front ear
+    sway = math.sin(t * 2 * math.pi) * 4
+    d.rounded_rectangle([s(cx + 8), s(cy - 22), s(cx + 52), s(cy - 10)], radius=s(5), fill=(46, 160, 90))
+    d.polygon([(s(cx + 14), s(cy - 14)), (s(cx + 26), s(cy - 14)), (s(cx + 22 + sway), s(cy + 22)), (s(cx + 10 + sway), s(cy + 20))], fill=(46, 160, 90))
+    for k in range(3):
+        d.line([s(cx + 12 + sway * 0.5), s(cy + 2 + k * 6), s(cx + 24 + sway * 0.5), s(cy + 2 + k * 6)], fill=(230, 60, 60), width=s(2))
+
+
+def snowman(d, x, y, t):
+    d.ellipse(box(x, y, 24, 22), fill=(250, 252, 255), outline=(200, 214, 235), width=s(2))
+    d.ellipse(box(x, y - 32, 17, 16), fill=(250, 252, 255), outline=(200, 214, 235), width=s(2))
+    d.ellipse(box(x - 6, y - 35, 2.2, 2.2), fill=INK)
+    d.ellipse(box(x + 6, y - 35, 2.2, 2.2), fill=INK)
+    d.polygon([(s(x), s(y - 30)), (s(x + 14), s(y - 28)), (s(x), s(y - 26))], fill=(255, 140, 30))
+    d.rectangle([s(x - 13), s(y - 50), s(x + 13), s(y - 46)], fill=INK)
+    d.rectangle([s(x - 9), s(y - 66), s(x + 9), s(y - 48)], fill=INK)
+
+
+def winter(img, t):
+    d = winter_sky(img, t)
+    present(d, 236, 186, 20, 16, (60, 140, 220), (255, 220, 80))
+    present(d, 276, 192, 14, 11, (220, 60, 80), (250, 250, 250))
+    present(d, 256, 160, 12, 10, (80, 180, 110), (230, 60, 60))
+    bounce = abs(math.sin(t * 2 * math.pi)) * -6
+    hx, hy = rat(d, 108, 152 + bounce, t)
+    santa_hat(d, hx + 2, hy + 4, t)
+    snowfall(d, t)
+
+
+def frosty(img, t):
+    d = winter_sky(img, t)
+    snowman(d, 252, 182, t)
+    bounce = abs(math.sin(t * 2 * math.pi)) * -4
+    cx, cy = 110, 152 + bounce
+    hx, hy = rat(d, cx, cy, t)
+    earmuffs_scarf(d, hx + 4, hy + 20, cx, cy, t)
+    snowfall(d, t, 44)
+
+
 if __name__ == '__main__':
     os.makedirs(OUT, exist_ok=True)
     render('halloween', halloween)
     render('ghost', ghost_frame)
     render('birthday', birthday)
+    render('winter', winter)
+    render('frosty', frosty)
