@@ -44,6 +44,8 @@ Peaches, plus social features, with Peaches as the voice of the whole bot.
 ## Phase 7: Deals — ✅ done
 - Steam sale alerts for games on the game night list (auto-linked on `/games add`), `/games deals`, Epic free games
 
+## Phase 8: Seasons all year — ✅ done
+- Valentine's (Cupid Peaches, valentines), spring (Bunny Peaches, egg hunts), summer (Beach Peaches, ice cream), each with art, collectibles and shop items
+
 ## Ideas parking lot
 - Peaches outfits drawn into her GIF art (not just emoji)
-- More seasons (Valentine's, spring, summer)

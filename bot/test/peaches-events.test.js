@@ -21,7 +21,7 @@ test('Halloween runs Oct 15–31 in the server timezone', () => {
   assert.equal(getActiveSeason(at('2026-11-01T00:00:00Z'), 'UTC'), null);
   // 03:00 UTC Nov 1 is still Oct 31 evening in Los Angeles
   assert.equal(getActiveSeason(at('2026-11-01T03:00:00Z'), 'America/Los_Angeles'), 'halloween');
-  assert.equal(getActiveSeason(at('2026-07-01T00:00:00Z'), 'Bad/Zone'), null);
+  assert.equal(getActiveSeason(at('2026-06-01T00:00:00Z'), 'Bad/Zone'), null);
 });
 
 test('PEACHES_FORCE_SEASON previews a season out of its dates', () => {

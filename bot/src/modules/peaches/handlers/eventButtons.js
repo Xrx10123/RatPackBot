@@ -67,6 +67,54 @@ const SEASONAL_KNOCKS = {
     gone: "🐀 She's already scurried off with her candy.",
     repeat: '🎃 You already knocked. Greedy. She remembers faces.',
   },
+  valentine: {
+    season: 'valentines',
+    goodTitle: (u) => `💌 A valentine for ${u}!`,
+    good: [
+      (name) => `💌 ${name} hands you a card. It says "you are grate" with a drawing of cheese.`,
+      (name) => `🍫 ${name} shares one chocolate from her box. The best one. She sighs as she does it.`,
+      (name) => `🌹 ${name} gives you a rose. She has nibbled most of the thorns off for you.`,
+    ],
+    badTitle: () => '💔 Oops!',
+    bad: [
+      (name) => `💔 ${name} wrote you a valentine but ate it on the way over. She looks apologetic. Slightly.`,
+      (name) => `🏹 ${name}'s arrow hits the wall next to you. She pretends that was the plan.`,
+    ],
+    gone: '🐀 She\'s fluttered off to deliver the rest of her valentines.',
+    repeat: '💌 You already got your valentine. Don\'t be greedy with love.',
+  },
+  egghunt: {
+    season: 'spring',
+    goodTitle: (u) => `🥚 ${u} found an egg!`,
+    good: [
+      (name) => `🥚 Behind the couch! A pastel egg ${name} painted herself. It's mostly paw prints.`,
+      (name) => `🍫 A chocolate egg! ${name} watches you very closely while you unwrap it.`,
+      (name) => `🐣 It's a little plush chick. ${name} insists it hatched.`,
+    ],
+    badTitle: () => '🪨 Not quite…',
+    bad: [
+      (name) => `🪨 You found an egg! …It's a rock ${name} painted to look like an egg. She's thrilled you fell for it.`,
+      (name) => `🍃 Just leaves. ${name} giggles from somewhere you can't see.`,
+    ],
+    gone: '🐀 She\'s hopped off. The eggs went with her.',
+    repeat: '🥚 You already had your search. Let someone else hunt!',
+  },
+  icecream: {
+    season: 'summer',
+    goodTitle: (u) => `🍦 A scoop for ${u}!`,
+    good: [
+      (name) => `🍦 ${name} serves you a cone. Flavour: cheese. It's surprisingly good.`,
+      (name) => `🍧 ${name} hands you a snow cone. She's already had three.`,
+      (name) => `🍨 ${name} gives you a sundae with a single, perfect cherry on top. She ate the other cherries.`,
+    ],
+    badTitle: () => '💦 Splash!',
+    bad: [
+      (name) => `💦 ${name} cannonballs into the pool right next to you. You are soaked. She is delighted.`,
+      (name) => `🫠 Your ice cream melted before ${name} could hand it over. She licks the cone apologetically.`,
+    ],
+    gone: '🐀 She\'s packed up the ice cream stand and gone for a swim.',
+    repeat: '🍦 One scoop per customer! She\'s running a business here.',
+  },
   unwrap: {
     season: 'winter',
     goodTitle: (u) => `🎁 A present for ${u}!`,
@@ -109,8 +157,8 @@ async function seasonalKnock(interaction, spawnId, action) {
 }
 
 export const eventButtons = {
-  trickortreat: (interaction, spawnId) => seasonalKnock(interaction, spawnId, 'trickortreat'),
-  unwrap: (interaction, spawnId) => seasonalKnock(interaction, spawnId, 'unwrap'),
+  // One button handler per seasonal knock — generated, so a new season can't ship a dead button.
+  ...Object.fromEntries(Object.keys(SEASONAL_KNOCKS).map((action) => [action, (interaction, spawnId) => seasonalKnock(interaction, spawnId, action)])),
 
   /** On the birthday post: everyone can grab one slice of cake per birthday. */
   async birthday_cake(interaction) {

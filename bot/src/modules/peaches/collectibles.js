@@ -47,6 +47,21 @@ export const ITEMS = [
   { key: 'snow_globe', name: 'Snow Globe', emoji: '🔮', rarity: 'rare', season: 'winter', blurb: 'There\'s a tiny rat inside. Shake it gently.' },
   { key: 'golden_bell', name: 'Golden Sleigh Bell', emoji: '🔔', rarity: 'legendary', season: 'winter', blurb: 'Jingles once a year, on its own, at midnight.' },
 
+  { key: 'love_letter', name: 'Love Letter', emoji: '💌', rarity: 'common', season: 'valentines', blurb: 'Sealed with a tiny paw print.' },
+  { key: 'candy_heart', name: 'Candy Heart', emoji: '💗', rarity: 'common', season: 'valentines', blurb: 'It says "SQUEAK ME". Romantic.' },
+  { key: 'single_rose', name: 'Single Rose', emoji: '🌹', rarity: 'uncommon', season: 'valentines', blurb: 'Thorns lovingly nibbled off.' },
+  { key: 'cupid_arrow', name: "Cupid's Arrow", emoji: '💘', rarity: 'rare', season: 'valentines', blurb: 'Blunt tip. She is a responsible cupid.' },
+
+  { key: 'painted_egg', name: 'Painted Egg', emoji: '🥚', rarity: 'common', season: 'spring', blurb: 'Pastel, with paw prints. Lots of paw prints.' },
+  { key: 'tulip', name: 'Tulip', emoji: '🌷', rarity: 'common', season: 'spring', blurb: 'From a neighbour\'s garden. Shh.' },
+  { key: 'plush_chick', name: 'Plush Chick', emoji: '🐣', rarity: 'uncommon', season: 'spring', blurb: 'She swears she hatched it.' },
+  { key: 'golden_egg', name: 'Golden Egg', emoji: '🪺', rarity: 'legendary', season: 'spring', blurb: 'Heavier than it looks. Do not ask what laid it.' },
+
+  { key: 'seashell', name: 'Seashell', emoji: '🐚', rarity: 'common', season: 'summer', blurb: 'Hold it to your ear: faint squeaking.' },
+  { key: 'popsicle_stick', name: 'Lucky Popsicle Stick', emoji: '🍡', rarity: 'common', season: 'summer', blurb: 'It says "WINNER" on it. Winner of what is unclear.' },
+  { key: 'message_bottle', name: 'Message in a Bottle', emoji: '🍾', rarity: 'rare', season: 'summer', blurb: 'The message is a cheese recipe.' },
+  { key: 'doubloon', name: 'Sunken Doubloon', emoji: '🪙', rarity: 'legendary', season: 'summer', blurb: 'Real pirate gold. She dove for it herself.' },
+
   { key: 'cake_slice', name: 'Birthday Cake Slice', emoji: '🍰', rarity: 'rare', season: 'birthday', blurb: 'A slice of her birthday cake. One per year.' },
 ];
 

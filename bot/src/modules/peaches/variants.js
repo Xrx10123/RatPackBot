@@ -45,6 +45,30 @@ export const VARIANTS = {
     season: 'halloween',
     intro: ['drifts in under a bedsheet. Boo.', 'is haunting this channel. Politely.', 'phases through the wall, rattling a tiny chain.'],
   },
+  cupid: {
+    label: 'Cupid Peaches',
+    multiplier: 1.5,
+    expiresInMs: 10 * 60 * 1000,
+    color: 0xffa3c8,
+    season: 'valentines',
+    intro: ['flutters in on tiny wings, bow at the ready.', 'is aiming at someone. Duck.', 'has matched two people in this server already. She will not say who.'],
+  },
+  bunny: {
+    label: 'Bunny Peaches',
+    multiplier: 1.5,
+    expiresInMs: 10 * 60 * 1000,
+    color: 0xc6efb3,
+    season: 'spring',
+    intro: ['hops in wearing bunny ears. She is fooling nobody.', 'is carrying a basket of eggs she definitely found and did not take.', 'boing. boing. boing.'],
+  },
+  beach: {
+    label: 'Beach Peaches',
+    multiplier: 1.5,
+    expiresInMs: 10 * 60 * 1000,
+    color: 0x7fd3f5,
+    season: 'summer',
+    intro: ['floats in on a pool ring, sunglasses on.', 'has sand everywhere. Everywhere.', 'is working on her tan. Rats do not tan.'],
+  },
   // Winter-only. Bundled up and in a hurry to get back somewhere warm.
   frosty: {
     label: 'Frosty Peaches',

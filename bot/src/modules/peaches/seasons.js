@@ -7,6 +7,39 @@
  */
 
 export const SEASONS = {
+  valentines: {
+    label: "Valentine's",
+    emoji: '💘',
+    color: 0xff6fa5,
+    start: [2, 7],
+    end: [2, 14],
+    costume: ['is wearing a heart headband. It bobs when she walks.', 'has written you a valentine. It just says "cheese?"', 'is blushing. Or she ate something red. Hard to say.'],
+    statusLine: '💘 She\'s in her heart headband for Valentine\'s.',
+    media: 'valentines',
+    button: { action: 'valentine', emoji: '💌', label: 'Get a valentine!', hint: '💌 She\'s handing out valentines — one each per visit.' },
+  },
+  spring: {
+    label: 'Spring',
+    emoji: '🌷',
+    color: 0x9be37a,
+    start: [3, 20],
+    end: [4, 20],
+    costume: ['is wearing a flower crown she made herself. It has dandelions in it.', 'has been rolling around in the grass. She is very happy about it.', 'smells faintly of daisies.'],
+    statusLine: '🌷 She\'s in her flower crown for spring.',
+    media: 'spring',
+    button: { action: 'egghunt', emoji: '🥚', label: 'Egg hunt!', hint: '🥚 She\'s hidden eggs around here — one search each per visit.' },
+  },
+  summer: {
+    label: 'Summer',
+    emoji: '☀️',
+    color: 0x3fb7e8,
+    start: [7, 1],
+    end: [8, 31],
+    costume: ['is wearing a straw sun hat with a flower on it.', 'has sunscreen on her nose. Just her nose.', 'is fanning herself with a cracker.'],
+    statusLine: '☀️ She\'s in her sun hat for summer.',
+    media: 'summer',
+    button: { action: 'icecream', emoji: '🍦', label: 'Ice cream!', hint: '🍦 She\'s running an ice cream stand — one scoop each per visit.' },
+  },
   halloween: {
     label: 'Halloween',
     emoji: '🎃',

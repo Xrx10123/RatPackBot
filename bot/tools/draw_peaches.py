@@ -840,6 +840,186 @@ def s_birthday(img, t):
     confetti(d, t)
 
 
+# --- Valentine's / spring / summer ---------------------------------------------
+
+def heart_headband(d, r, t):
+    hx, hy = r.hat
+    d.arc(box(hx + 2, hy + 10, 26, 18), 200, 340, fill=(214, 60, 110), width=p(3))
+    for i, (dx, dy) in enumerate([(-18, -2), (16, -6)]):
+        bounce = wave(t, 2, i * 0.5) * 2
+        d.line(pts([(hx + dx * 0.6, hy + 2), (hx + dx, hy - 12 + dy + bounce)]), fill=(214, 60, 110), width=p(1.4))
+        heart(d, hx + dx, hy - 16 + dy + bounce, 5.5, color=(240, 70, 120))
+
+
+def wings(d, cx, cy, t):
+    flap = wave(t, 3) * 6
+    for k, (dx, dy) in enumerate([(-26, -22), (-40, -10)]):
+        outlined_ellipse(d, cx + dx - 6, cy + dy - flap * (1 - k * 0.4), 16 - k * 3, 10 - k * 2, WHITE, w=1.4)
+
+
+def bow_and_arrow(d, x, y):
+    d.arc(box(x, y, 10, 22), 270, 90, fill=(170, 110, 50), width=p(2.6))
+    d.line(pts([(x, y - 22), (x, y + 22)]), fill=(120, 120, 120), width=p(0.9))
+    d.line(pts([(x - 16, y), (x + 22, y)]), fill=(150, 100, 60), width=p(1.8))
+    heart(d, x + 25, y + 1, 4, color=(240, 70, 120))
+
+
+def choc_box(d, x, y):
+    heart(d, x, y, 22, color=(176, 36, 60))
+    heart(d, x, y - 2, 18, color=(214, 60, 90))
+    for dx, dy in [(-8, -6), (8, -6), (0, 4), (-5, 10), (5, 10)]:
+        outlined_ellipse(d, x + dx, y + dy, 4, 4, (110, 60, 40), w=0.8)
+
+
+def s_valentines(img, t):
+    d = stage(img, (255, 228, 238), (255, 196, 216), floor=(246, 176, 200))
+    for i in range(6):
+        u = (t + i / 6) % 1.0
+        heart(d, 30 + i * 52 + wave(t, 1, i * 0.2) * 5, 200 - 190 * u, 4 + (i % 3) * 1.5, color=(255, 120, 160), alpha=int(200 * (1 - u)))
+    choc_box(d, 258, 186)
+    r = peaches(img, PX - 8, PY + bob(t, 4), t, expr='happy', mouth='smile')
+    d = ImageDraw.Draw(img, 'RGBA')
+    heart_headband(d, r, t)
+
+
+def s_cupid(img, t):
+    d = stage(img, (252, 232, 248), (236, 206, 246), floor=(226, 190, 236))
+    float_y = wave(t) * 6
+    cx, cy = PX - 8, PY - 18 + float_y
+    wings(d, cx, cy, t)
+    r = peaches(img, cx, cy, t, expr='open', mouth='smile', paws='up')
+    d = ImageDraw.Draw(img, 'RGBA')
+    wings(d, cx + 4, cy + 4, t + 0.1)
+    bow_and_arrow(d, r.held[0] + 14, r.held[1] - 4)
+    for i, (sx, sy) in enumerate([(240, 60), (276, 110), (50, 70)]):
+        sparkle(d, sx, sy, 6, t, i * 0.3, color=(255, 190, 220))
+
+
+def flower(d, x, y, petal, center=(255, 214, 80), r=6):
+    for k in range(5):
+        a = k * 2 * math.pi / 5
+        d.ellipse(box(x + math.cos(a) * r * 0.9, y + math.sin(a) * r * 0.9, r * 0.75, r * 0.75), fill=petal)
+    d.ellipse(box(x, y, r * 0.55, r * 0.55), fill=center)
+
+
+def flower_crown(d, r, t):
+    hx, hy = r.hat
+    d.arc(box(hx + 2, hy + 8, 26, 14), 200, 340, fill=(90, 160, 80), width=p(3))
+    for i, (dx, col) in enumerate([(-20, (255, 160, 190)), (-6, (255, 236, 120)), (8, (190, 160, 255)), (20, (255, 160, 190))]):
+        flower(d, hx + dx, hy + 2 - abs(dx) * 0.15 + wave(t, 1, i * 0.25) * 0.8, col, r=5)
+
+
+def egg(d, x, y, color, stripe, scale=1.0):
+    outlined_ellipse(d, x, y, 9 * scale, 12 * scale, color, w=1.3)
+    d.arc(box(x, y + 2 * scale, 9 * scale, 6 * scale), 200, 340, fill=stripe, width=p(2.2 * scale))
+    for dx in (-4, 0, 4):
+        d.ellipse(box(x + dx * scale, y - 5 * scale, 1.3 * scale, 1.3 * scale), fill=stripe)
+
+
+def bunny_ears(d, r, t):
+    hx, hy = r.hat
+    flop = wave(t) * 3
+    for dx, tilt in [(-12, -6), (8, 4 + flop)]:
+        outlined_poly(d, [(hx + dx - 6, hy + 4), (hx + dx + 6, hy + 4), (hx + dx + 6 + tilt, hy - 34), (hx + dx - 2 + tilt, hy - 40)], WHITE, w=1.4)
+        d.polygon(pts([(hx + dx - 2, hy + 1), (hx + dx + 3, hy + 1), (hx + dx + 3 + tilt * 0.9, hy - 28), (hx + dx + tilt * 0.9, hy - 32)]), fill=(255, 196, 210))
+    d.rounded_rectangle([p(hx - 20), p(hy + 1), p(hx + 16), p(hy + 7)], radius=p(3), fill=(255, 160, 190), outline=LINE, width=p(1.2))
+
+
+def s_spring(img, t):
+    d = stage(img, (232, 246, 255), (214, 238, 250), floor=(150, 210, 120))
+    for i, (fx, col) in enumerate([(30, (255, 160, 190)), (220, (255, 236, 120)), (292, (190, 160, 255)), (250, (255, 160, 190))]):
+        d.line(pts([(fx, 216), (fx, 196)]), fill=(90, 160, 80), width=p(2))
+        flower(d, fx, 192 + wave(t, 1, i * 0.3), col, r=6)
+    egg(d, 262, 204, (180, 220, 255), (255, 140, 180))
+    egg(d, 286, 208, (255, 230, 150), (120, 190, 120), 0.8)
+    r = peaches(img, PX - 10, PY + bob(t, 4), t, expr='happy', mouth='smile')
+    d = ImageDraw.Draw(img, 'RGBA')
+    flower_crown(d, r, t)
+    for i in range(3):
+        u = (t + i / 3) % 1.0
+        x = 200 + 60 * u
+        y = 70 + wave(t, 2, i * 0.3) * 10 + i * 20
+        d.ellipse(box(x - 4, y, 4, 3), fill=(255, 196, 90))
+        d.ellipse(box(x + 4, y, 4, 3), fill=(255, 196, 90))
+
+
+def s_bunny(img, t):
+    d = stage(img, (240, 250, 236), (220, 244, 214), floor=(150, 210, 120))
+    basket_x = 262
+    d.arc(box(basket_x, 186, 24, 24), 180, 360, fill=(160, 110, 60), width=p(3))
+    d.rounded_rectangle([p(basket_x - 26), p(186), p(basket_x + 26), p(214)], radius=p(6), fill=(200, 150, 90), outline=LINE, width=p(1.5))
+    for dx, col, st in [(-12, (255, 196, 210), (150, 120, 220)), (2, (180, 220, 255), (255, 140, 180)), (14, (255, 230, 150), (120, 190, 120))]:
+        egg(d, basket_x + dx, 182, col, st, 0.8)
+    hop = -abs(wave(t, 1)) * 12
+    r = peaches(img, PX - 10, PY + hop, t, expr='happy', mouth='open', tail_speed=2)
+    d = ImageDraw.Draw(img, 'RGBA')
+    bunny_ears(d, r, t)
+
+
+def sun_hat(d, r, t):
+    hx, hy = r.hat
+    outlined_ellipse(d, hx + 2, hy + 2, 34, 7, (246, 214, 140), w=1.5)
+    d.chord(box(hx + 2, hy + 2, 18, 16), 180, 360, fill=(246, 214, 140), outline=LINE, width=p(1.5))
+    d.rectangle([p(hx - 16), p(hy - 3), p(hx + 20), p(hy + 1)], fill=(255, 120, 140))
+    flower(d, hx + 14, hy - 3, (255, 255, 255), r=4)
+
+
+def float_ring(d, cx, cy):
+    outlined_ellipse(d, cx + 4, cy + 16, 54, 18, (255, 110, 120), w=1.8)
+    d.ellipse(box(cx + 4, cy + 14, 38, 9), fill=(96, 186, 230))  # the water showing through the middle
+    for a in (30, 150, 270):
+        rad = math.radians(a)
+        d.ellipse(box(cx + 4 + 46 * math.cos(rad), cy + 16 + 15 * math.sin(rad), 8, 5), fill=WHITE)
+
+
+def ice_cream(d, x, y, t):
+    outlined_poly(d, [(x - 10, y), (x + 10, y), (x, y + 28)], (226, 176, 110), w=1.4)
+    for k in range(3):
+        d.line(pts([(x - 8 + k * 6, y + 2), (x - 2 + k * 6, y + 14)]), fill=(196, 140, 80), width=p(1))
+    outlined_ellipse(d, x, y - 6, 11, 9, (255, 196, 210), w=1.4)
+    outlined_ellipse(d, x - 2, y - 17, 9, 8, (250, 246, 230), w=1.4)
+    drip = (t * 2) % 1.0
+    d.ellipse(box(x + 8, y + 2 + 8 * drip, 2.2, 3), fill=(255, 196, 210, int(255 * (1 - drip))))
+    d.ellipse(box(x - 2, y - 27, 3, 3), fill=RED)
+
+
+def beach_stage(img, t):
+    d = stage(img, (150, 214, 255), (196, 236, 255), floor=(246, 222, 168))
+    d.rectangle([0, p(176), p(DW), p(214)], fill=(96, 186, 230))
+    for i in range(7):
+        x = (i * 52 + t * 52) % (DW + 52) - 26
+        d.arc(box(x, 180, 14, 5), 200, 340, fill=WHITE, width=p(1.6))
+    d.ellipse(box(270, 46, 20, 20), fill=(255, 220, 90))
+    glow(img, 270, 46, 30, 30, (255, 230, 120), 90)
+    return ImageDraw.Draw(img, 'RGBA')
+
+
+def s_summer(img, t):
+    d = beach_stage(img, t)
+    # umbrella
+    d.line(pts([(268, 214), (262, 132)]), fill=(150, 110, 70), width=p(2.4))
+    d.chord(box(262, 136, 44, 26), 180, 360, fill=(255, 120, 130), outline=LINE, width=p(1.6))
+    for k in (-22, 0, 22):
+        d.chord(box(262 + k, 136, 9, 26), 180, 360, fill=WHITE)
+    r = peaches(img, PX - 10, PY + bob(t, 3), t, expr='happy', mouth='smile', paws='up')
+    d = ImageDraw.Draw(img, 'RGBA')
+    sun_hat(d, r, t)
+    ice_cream(d, r.held[0] + 2, r.held[1] - 14, t)
+
+
+def s_beach(img, t):
+    d = beach_stage(img, t)
+    bobbing = wave(t) * 3
+    cx, cy = PX + 10, PY - 4 + bobbing
+    r = peaches(img, cx, cy, t, expr='happy', mouth='smile')
+    d = ImageDraw.Draw(img, 'RGBA')
+    float_ring(d, cx, cy + 22)
+    sunglasses(d, r.eye[0] + 1, r.eye[1])
+    for i in range(4):
+        u = (t + i / 4) % 1.0
+        d.ellipse(box(cx - 60 + i * 30, 196 - 4 * u, 3 + 3 * u, 1.2 + u), outline=(255, 255, 255, int(200 * (1 - u))), width=p(1))
+
+
 SCENES = {
     # moods
     'content': s_content,
@@ -873,6 +1053,12 @@ SCENES = {
     'halloween': s_halloween,
     'winter': s_winter,
     'birthday': s_birthday,
+    'valentines': s_valentines,
+    'cupid': s_cupid,
+    'spring': s_spring,
+    'bunny': s_bunny,
+    'summer': s_summer,
+    'beach': s_beach,
 }
 
 

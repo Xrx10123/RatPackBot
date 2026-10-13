@@ -80,3 +80,26 @@ test('shop menu and collectibles fit in every season', () => {
   }
   assert.ok(findableItems('winter').some((i) => i.season === 'winter'));
 });
+
+test("Valentine's, spring and summer run on their dates", () => {
+  assert.equal(getActiveSeason(at('2026-02-10T12:00:00Z'), 'UTC'), 'valentines');
+  assert.equal(getActiveSeason(at('2026-02-15T12:00:00Z'), 'UTC'), null);
+  assert.equal(getActiveSeason(at('2026-03-19T12:00:00Z'), 'UTC'), null);
+  assert.equal(getActiveSeason(at('2026-04-01T12:00:00Z'), 'UTC'), 'spring', 'spans the month boundary');
+  assert.equal(getActiveSeason(at('2026-08-31T12:00:00Z'), 'UTC'), 'summer');
+  assert.equal(getActiveSeason(at('2026-09-01T12:00:00Z'), 'UTC'), null);
+});
+
+test('each new season knock gives a response and only once per visit', async () => {
+  for (const action of ['valentine', 'egghunt', 'icecream']) {
+    ensureState(`g-${action}`);
+    const spawn = createSpawn({ guildId: `g-${action}`, channelId: 'c', variant: 'normal', expiresInMs: 60_000 });
+    const knock = async () => {
+      const replies = [];
+      await eventButtons[action]({ guildId: `g-${action}`, user: { id: 'u', displayName: 'u', toString: () => '<@u>' }, reply: async (p) => replies.push(p) }, spawn.id);
+      return replies[0];
+    };
+    assert.ok((await knock()).embeds[0].data.title, action);
+    assert.equal((await knock()).ephemeral, true, action);
+  }
+});
