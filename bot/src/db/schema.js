@@ -199,6 +199,8 @@ export const peachesConfig = sqliteTable('peaches_config', {
   crossHoards: integer('cross_hoards').default(1),
   spawnChannels: text('spawn_channels'), // comma-separated channel IDs
   quietHours: integer('quiet_hours').default(1),
+  chatReactions: integer('chat_reactions').default(1),
+  chatMutedChannels: text('chat_muted_channels'), // comma-separated channel IDs
 });
 
 export const peachesGames = sqliteTable('peaches_games', {

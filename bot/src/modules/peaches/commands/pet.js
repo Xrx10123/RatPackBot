@@ -107,6 +107,13 @@ export const pet = {
         .setDescription('Rename Peaches (once per week).')
         .addStringOption((o) => o.setName('name').setDescription('New name (1-32 chars)').setRequired(true).setMaxLength(32)),
     )
+    .addSubcommand((sub) =>
+      sub
+        .setName('chat')
+        .setDescription('Let her react to chat (cheese, her name, goodnight…) — server-wide or per channel.')
+        .addBooleanOption((o) => o.setName('enabled').setDescription('On or off').setRequired(true))
+        .addChannelOption((o) => o.setName('channel').setDescription('Just this channel (default: the whole server)').addChannelTypes(ChannelType.GuildText)),
+    )
     .addSubcommand((sub) => sub.setName('hideandseek').setDescription('She hides in a channel — first to /pet find her wins cheese.'))
     .addSubcommand((sub) => sub.setName('find').setDescription('Look for her in THIS channel (hide-and-seek).'))
     .addSubcommand((sub) => sub.setName('trivia').setDescription('A rat & cheese trivia question — first right answer wins.'))
@@ -263,6 +270,32 @@ const SUBCOMMAND_HANDLERS = {
       ],
       ephemeral: true,
     });
+  },
+
+  async chat(interaction) {
+    if (!(await requireAdmin(interaction))) return;
+    const enabled = interaction.options.getBoolean('enabled', true);
+    const channel = interaction.options.getChannel('channel');
+    const config = ensurePeachesConfig(interaction.guildId);
+
+    if (channel) {
+      const muted = new Set((config.chatMutedChannels ?? '').split(',').filter(Boolean));
+      if (enabled) muted.delete(channel.id);
+      else muted.add(channel.id);
+      updatePeachesConfig(interaction.guildId, { chatMutedChannels: [...muted].join(',') || null });
+      audit(interaction, `${enabled ? 'unmuted' : 'muted'} Peaches' chat reactions in <#${channel.id}>.`);
+      const note = enabled && config.chatReactions === 0 ? ' (They\'re still off server-wide — run `/pet chat enabled:True` to turn them back on.)' : '';
+      await interaction.reply({ embeds: [successEmbed({ description: `🐀 She'll ${enabled ? 'chime in' : 'stay quiet'} in <#${channel.id}>.${note}` })], ephemeral: true });
+      return;
+    }
+
+    updatePeachesConfig(interaction.guildId, { chatReactions: enabled ? 1 : 0 });
+    audit(interaction, `turned Peaches' chat reactions **${enabled ? 'on' : 'off'}** server-wide.`);
+    const intentNote =
+      enabled && !interaction.client.ratpack?.messageContent
+        ? '\n-# The Message Content intent is off in the Developer Portal, so for now she only answers @mentions and replies to her.'
+        : '';
+    await interaction.reply({ embeds: [successEmbed({ description: `🐀 Chat reactions are **${enabled ? 'on' : 'off'}** across the server.${intentNote}` })], ephemeral: true });
   },
 
   hideandseek: startHideAndSeek,

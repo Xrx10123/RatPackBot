@@ -8,6 +8,7 @@ import { getLavalinkManager } from '../../lavalink/manager.js';
 import { eventButtons } from './handlers/eventButtons.js';
 import { shopButtons, shopSelects } from './handlers/shopButtons.js';
 import { gameButtons, sweepExpiredGames } from './games/index.js';
+import { handleChatMessage } from './handlers/chat.js';
 import { birthdayTick, ensureBirthday } from './birthday.js';
 
 export default {
@@ -17,7 +18,10 @@ export default {
   selects: { ...shopSelects },
   modals: {},
   // Her birthday in each server is the day she joined it — record it right away.
-  events: [{ name: 'guildCreate', execute: async (client, guild) => ensureBirthday(guild) }],
+  events: [
+    { name: 'guildCreate', execute: async (client, guild) => ensureBirthday(guild) },
+    { name: 'messageCreate', execute: handleChatMessage },
+  ],
   cron: [
     { schedule: '*/15 * * * *', name: 'spawnTick', task: (client) => spawnTick(client) },
     { schedule: '*/10 * * * *', name: 'mischiefTick', task: (client) => mischiefTick(client) },

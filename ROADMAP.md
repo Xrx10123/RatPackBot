@@ -27,9 +27,10 @@ Peaches, plus social features, with Peaches as the voice of the whole bot.
 - Cheese trivia: rat and cheese facts, quick-answer buttons
 - Rat race: pick a racer and watch an animated race in the embed, with cheese prizes (no betting losses)
 
-## Phase 4: She reacts to chat
+## Phase 4: She reacts to chat — ✅ done
 - Emoji reactions to "cheese", "rat", her name; replies to "goodnight"/"good morning"
-- Strictly rate-limited per channel; managers can toggle it per channel
+- Strictly rate-limited per channel; managers can toggle it per channel (`/pet chat`)
+- The bot detects the Message Content intent at startup; without it she answers only @mentions and replies
 
 ## Phase 5: Social
 - Birthdays: `/birthday set`, posted in the configured channel at local midnight, with an optional "Birthday Rat" role for the day

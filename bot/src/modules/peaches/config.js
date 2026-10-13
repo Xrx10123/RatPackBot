@@ -22,6 +22,8 @@ export function ensurePeachesConfig(guildId) {
     crossHoards: 1,
     spawnChannels: null,
     quietHours: 1,
+    chatReactions: 1,
+    chatMutedChannels: null,
   };
   db.insert(peachesConfig).values(row).run();
   return row;

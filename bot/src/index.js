@@ -2,11 +2,12 @@ import { config } from './config.js';
 import './db/index.js'; // running this module applies pending migrations
 import { logger } from './core/logger.js';
 import { createClient } from './core/client.js';
+import { shouldRequestMessageContent } from './core/intents.js';
 import { loadModules } from './core/moduleLoader.js';
 import { createLavalinkManager } from './lavalink/manager.js';
 import { registerLavalinkEvents } from './lavalink/events.js';
 
-const client = createClient();
+const client = createClient({ messageContent: await shouldRequestMessageContent(config.discord.token) });
 
 const lavalinkManager = createLavalinkManager(client);
 registerLavalinkEvents(lavalinkManager, client);
