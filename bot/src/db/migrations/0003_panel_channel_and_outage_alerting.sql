@@ -11,3 +11,6 @@ ALTER TABLE outage_monitors ADD COLUMN alerting INTEGER DEFAULT 0;
 -- Consecutive failed fetches of the status page itself — one network blip
 -- shouldn't page the whole server.
 ALTER TABLE outage_monitors ADD COLUMN fail_count INTEGER DEFAULT 0;
+-- Anything already down when this ships was alerted under the old logic —
+-- mark it as an open incident so it isn't announced a second time.
+UPDATE outage_monitors SET alerting = 1 WHERE last_status = 'down';
