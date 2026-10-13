@@ -17,6 +17,11 @@ export const CHEESE_REWARDS = {
   thanks: 2, // thanking her for crumbs or a gift
   treat: 2, // trick-or-treat treat
   cake: 10, // birthday cake slice
+  hideSeek: 15, // found her (+ hideSeekFirstTry if on your first guess)
+  hideSeekFirstTry: 10,
+  trivia: 8,
+  raceWin: 12, // backed the winning racer
+  raceJoin: 2, // showed up
 };
 
 export function cheese(amount) {

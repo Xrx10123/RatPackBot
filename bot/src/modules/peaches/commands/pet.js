@@ -15,6 +15,7 @@ import { getGuildConfig } from '../../../core/guildConfig.js';
 import { getWallet, getRichest } from '../economy.js';
 import { outfitLine, outfitEmojis } from '../wardrobe.js';
 import { buildShopPayload, buildWardrobePayload } from '../ui/shopUi.js';
+import { startHideAndSeek, guessHideAndSeek, startTrivia, startRaceLobby } from '../games/index.js';
 import { audit } from '../../../core/guildLog.js';
 
 const LEADERBOARD_CATEGORIES = [
@@ -106,6 +107,10 @@ export const pet = {
         .setDescription('Rename Peaches (once per week).')
         .addStringOption((o) => o.setName('name').setDescription('New name (1-32 chars)').setRequired(true).setMaxLength(32)),
     )
+    .addSubcommand((sub) => sub.setName('hideandseek').setDescription('She hides in a channel — first to /pet find her wins cheese.'))
+    .addSubcommand((sub) => sub.setName('find').setDescription('Look for her in THIS channel (hide-and-seek).'))
+    .addSubcommand((sub) => sub.setName('trivia').setDescription('A rat & cheese trivia question — first right answer wins.'))
+    .addSubcommand((sub) => sub.setName('race').setDescription('Start a rat race — pick a racer, win cheese.'))
     .addSubcommand((sub) => sub.setName('shop').setDescription('Spend your cheese on treats and outfits for her.'))
     .addSubcommand((sub) => sub.setName('wardrobe').setDescription('Dress her in something from the shared wardrobe.'))
     .addSubcommand((sub) =>
@@ -259,6 +264,11 @@ const SUBCOMMAND_HANDLERS = {
       ephemeral: true,
     });
   },
+
+  hideandseek: startHideAndSeek,
+  find: guessHideAndSeek,
+  trivia: startTrivia,
+  race: startRaceLobby,
 
   async shop(interaction) {
     const { name } = getCurrentState(interaction.guildId);

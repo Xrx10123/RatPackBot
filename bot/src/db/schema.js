@@ -200,3 +200,16 @@ export const peachesConfig = sqliteTable('peaches_config', {
   spawnChannels: text('spawn_channels'), // comma-separated channel IDs
   quietHours: integer('quiet_hours').default(1),
 });
+
+export const peachesGames = sqliteTable('peaches_games', {
+  id: text('id').primaryKey(),
+  guildId: text('guild_id').notNull(),
+  type: text('type').notNull(), // hideseek | trivia | race
+  channelId: text('channel_id').notNull(),
+  messageId: text('message_id'),
+  data: text('data').notNull().default('{}'), // JSON, per game type
+  startedAt: integer('started_at').notNull(),
+  expiresAt: integer('expires_at').notNull(),
+  resolved: integer('resolved').notNull().default(0),
+  winnerId: text('winner_id'),
+});

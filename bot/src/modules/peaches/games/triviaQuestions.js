@@ -1,0 +1,42 @@
+/**
+ * Rat & cheese trivia. The first answer in each list is the correct one —
+ * the game shuffles them. Kept to well-established facts.
+ */
+export const TRIVIA = [
+  { q: 'Which country does Gouda cheese come from?', a: ['The Netherlands', 'France', 'Switzerland', 'Belgium'] },
+  { q: 'Roquefort is a blue cheese made from which animal\'s milk?', a: ['Sheep', 'Cow', 'Goat', 'Buffalo'] },
+  { q: 'Traditional mozzarella di bufala is made from the milk of which animal?', a: ['Water buffalo', 'Goat', 'Sheep', 'Yak'] },
+  { q: 'Which cheese is famous for its holes, called "eyes"?', a: ['Emmental', 'Cheddar', 'Brie', 'Feta'] },
+  { q: 'Cheddar cheese is named after a village in which country?', a: ['England', 'Ireland', 'Scotland', 'Wales'] },
+  { q: 'Feta cheese is most associated with which country?', a: ['Greece', 'Italy', 'Turkey', 'Spain'] },
+  { q: 'Parmigiano-Reggiano comes from which country?', a: ['Italy', 'France', 'Spain', 'Portugal'] },
+  { q: 'Brie and Camembert both come from which country?', a: ['France', 'Belgium', 'Germany', 'Denmark'] },
+  { q: 'What enzyme is traditionally used to curdle milk when making cheese?', a: ['Rennet', 'Lactase', 'Pepsin', 'Amylase'] },
+  { q: 'Halloumi, a cheese you can grill without it melting, is from which island?', a: ['Cyprus', 'Crete', 'Sicily', 'Malta'] },
+  { q: 'Manchego cheese comes from which country?', a: ['Spain', 'Mexico', 'Portugal', 'Argentina'] },
+  { q: 'What is the liquid left over after milk is curdled for cheese?', a: ['Whey', 'Curd', 'Brine', 'Rind'] },
+  { q: 'Which blue cheese is named after a village in England?', a: ['Stilton', 'Gorgonzola', 'Roquefort', 'Cabrales'] },
+  { q: 'Gorgonzola is a blue cheese from which country?', a: ['Italy', 'Switzerland', 'Austria', 'France'] },
+  { q: 'Which cheese is traditionally used in a classic Greek salad?', a: ['Feta', 'Ricotta', 'Gouda', 'Havarti'] },
+  { q: 'Which Swiss cheese is the classic choice for fondue (along with Emmental)?', a: ['Gruyère', 'Cheddar', 'Brie', 'Paneer'] },
+  { q: 'Paneer, which doesn\'t melt, is a staple cheese of which cuisine?', a: ['Indian', 'Japanese', 'Mexican', 'Greek'] },
+  { q: 'Mascarpone is a key ingredient in which dessert?', a: ['Tiramisu', 'Crème brûlée', 'Baklava', 'Pavlova'] },
+
+  { q: 'A group of rats is commonly called a…', a: ['Mischief', 'Murder', 'Pride', 'Parliament'] },
+  { q: 'Rats are rodents. What do rodents\' front teeth never stop doing?', a: ['Growing', 'Changing colour', 'Falling out', 'Shrinking'] },
+  { q: 'Can rats vomit?', a: ['No', 'Yes', 'Only when nervous', 'Only as babies'] },
+  { q: 'Which animal is the Chinese zodiac\'s first sign?', a: ['The Rat', 'The Ox', 'The Dragon', 'The Tiger'] },
+  { q: 'Pet rats are mostly descended from which wild species?', a: ['Brown rat', 'Black rat', 'Kangaroo rat', 'Mole rat'] },
+  { q: 'What is a baby rat called?', a: ['A pup or kitten', 'A cub', 'A kit only', 'A joey'] },
+  { q: 'Rats make ultrasonic chirps, often compared to laughter, when they are…', a: ['Tickled', 'Asleep', 'Swimming', 'Hungry'] },
+  { q: 'Roughly how long does a pet rat usually live?', a: ['2–3 years', '6 months', '8–10 years', '15 years'] },
+  { q: 'Rats use these to feel their way around in the dark:', a: ['Whiskers', 'Tails', 'Ears', 'Toes'] },
+  { q: 'In Pixar\'s "Ratatouille", what is the rat chef called?', a: ['Remy', 'Emile', 'Linguini', 'Gusteau'] },
+  { q: 'Which Teenage Mutant Ninja Turtles character is a rat?', a: ['Splinter', 'Shredder', 'Krang', 'Bebop'] },
+  { q: 'In "Charlotte\'s Web", what is the name of the rat?', a: ['Templeton', 'Wilbur', 'Fern', 'Nibbles'] },
+  { q: 'Hero rats trained by APOPO help detect landmines and…', a: ['Tuberculosis', 'Earthquakes', 'Gold', 'Truffles'] },
+  { q: 'Despite the cartoons, what do most rats actually prefer to cheese?', a: ['Sweet foods & grains', 'Only cheese', 'Raw meat', 'Grass'] },
+  { q: 'A rat\'s tail mostly helps it with balance and…', a: ['Regulating body temperature', 'Breathing', 'Hearing', 'Smelling'] },
+  { q: 'Which of these is NOT a rodent?', a: ['Rabbit', 'Squirrel', 'Beaver', 'Hamster'] },
+  { q: 'Peaches is a rat. Peaches has opinions about your playlist. Is this…', a: ['Correct', 'Incorrect', 'Slander', 'Under review'] },
+];

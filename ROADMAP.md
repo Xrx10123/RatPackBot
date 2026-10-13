@@ -22,7 +22,7 @@ Peaches, plus social features, with Peaches as the voice of the whole bot.
 - `/pet wardrobe` to dress her (a shared server wardrobe; seasonal items are sold only in season)
 - `/pet wallet`, plus a Cheese Earned leaderboard
 
-## Phase 3: Mini-games
+## Phase 3: Mini-games — ✅ done
 - Hide-and-seek: she hides in a random channel, and the first to find her with `/pet find` wins cheese
 - Cheese trivia: rat and cheese facts, quick-answer buttons
 - Rat race: pick a racer and watch an animated race in the embed, with cheese prizes (no betting losses)
