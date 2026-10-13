@@ -35,5 +35,11 @@ export function getUserStats(guildId, userId) {
 
 export function getLeaderboard(guildId, category = 'cheeseFed', limit = 10) {
   const column = peachesStats[category] ?? peachesStats.cheeseFed;
-  return db.select().from(peachesStats).where(eq(peachesStats.guildId, guildId)).orderBy(desc(column)).limit(limit).all();
+  return db
+    .select()
+    .from(peachesStats)
+    .where(and(eq(peachesStats.guildId, guildId), sql`${column} > 0`))
+    .orderBy(desc(column))
+    .limit(limit)
+    .all();
 }

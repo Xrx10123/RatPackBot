@@ -2,14 +2,9 @@ import { ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import { infoEmbed } from '../../../core/embeds.js';
 import { checkService } from '../checkService.js';
 import { listMonitors, updateMonitorStatus } from '../monitors.js';
+import { toStatus } from '../alerting.js';
 
 const STATUS_EMOJI = { up: '🟢', degraded: '🟡', down: '🔴' };
-
-function toStatus(indicator) {
-  if (indicator === 'none') return 'up';
-  if (indicator === 'minor') return 'degraded';
-  return 'down';
-}
 
 export function buildStatusBoardPayload(monitors) {
   const embed =

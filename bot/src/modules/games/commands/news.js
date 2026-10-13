@@ -3,6 +3,8 @@ import { successEmbed, errorEmbed, infoEmbed, warnEmbed } from '../../../core/em
 import { fuzzySearch } from '../../../utils/fuzzy.js';
 import * as steam from '../providers/steam.js';
 import { pollOne } from '../newsScheduler.js';
+import { requireManager } from '../../../core/permissions.js';
+import { getGuildConfig } from '../../../core/guildConfig.js';
 import {
   listSubscriptions,
   getSubscriptionByAppId,
@@ -37,7 +39,7 @@ export const news = {
         .setName('filter')
         .setDescription('Narrow a feed to specific Steam news tags.')
         .addStringOption((o) => o.setName('game').setDescription('Currently followed game').setRequired(true).setAutocomplete(true))
-        .addStringOption((o) => o.setName('tags').setDescription('Comma-separated tags, e.g. patchnotes,update').setRequired(true)),
+        .addStringOption((o) => o.setName('tags').setDescription('Comma-separated tags, e.g. patchnotes,update — or "clear" to remove the filter').setRequired(true).setMaxLength(200)),
     ),
 
   async autocomplete(interaction) {
@@ -56,7 +58,8 @@ export const news = {
 
     const followed = listSubscriptions(interaction.guildId);
     const matches = fuzzySearch(focused, followed, { key: (s) => s.gameName, limit: 25 });
-    await interaction.respond(matches.map((s) => ({ name: s.gameName.slice(0, 100), value: s.gameName })));
+    // Subscription id as the value — game names can exceed the 100-char option value limit.
+    await interaction.respond(matches.map((s) => ({ name: s.gameName.slice(0, 100), value: s.id })));
   },
 
   async execute(interaction) {
@@ -67,6 +70,7 @@ export const news = {
 
 const SUBCOMMAND_HANDLERS = {
   async add(interaction) {
+    if (!(await requireManager(interaction))) return;
     await interaction.deferReply({ ephemeral: true });
 
     if (!steam.isAppListConfigured()) {
@@ -91,14 +95,14 @@ const SUBCOMMAND_HANDLERS = {
   },
 
   async remove(interaction) {
-    const name = interaction.options.getString('game', true);
-    const subRow = getSubscriptionByName(interaction.guildId, name);
+    if (!(await requireManager(interaction))) return;
+    const subRow = findFollowed(interaction);
     if (!subRow) {
       await interaction.reply({ embeds: [errorEmbed({ description: "🐀 You're not following that." })], ephemeral: true });
       return;
     }
     removeSubscription(subRow.id);
-    await interaction.reply({ embeds: [successEmbed({ description: `🐀 Stopped following **${name}**.` })], ephemeral: true });
+    await interaction.reply({ embeds: [successEmbed({ description: `🐀 Stopped following **${subRow.gameName}**.` })], ephemeral: true });
   },
 
   async list(interaction) {
@@ -131,31 +135,61 @@ const SUBCOMMAND_HANDLERS = {
   },
 
   async check(interaction) {
-    await interaction.deferReply({ ephemeral: true });
-    const subs = listSubscriptions(interaction.guildId);
-    for (const s of subs) {
-      await pollOne(interaction.client, s).catch(() => {});
+    if (!(await requireManager(interaction))) return;
+    if (!getGuildConfig(interaction.guildId)?.newsChannelId) {
+      await interaction.reply({ embeds: [warnEmbed({ description: '🐀 No news channel is set, so there is nowhere to post — pick one in `/setup start`.' })], ephemeral: true });
+      return;
     }
-    await interaction.editReply({ embeds: [successEmbed({ description: `🐀 Checked ${subs.length} feed${subs.length === 1 ? '' : 's'}.` })] });
+    await interaction.deferReply({ ephemeral: true });
+    const subs = listSubscriptions(interaction.guildId).filter((s) => s.enabled);
+    let posted = 0;
+    let failed = 0;
+    for (const s of subs) {
+      try {
+        posted += await pollOne(interaction.client, s);
+      } catch {
+        failed += 1;
+      }
+    }
+    const lines = [`🐀 Checked ${subs.length} feed${subs.length === 1 ? '' : 's'} — ${posted > 0 ? `posted **${posted}** new item${posted === 1 ? '' : 's'}` : 'nothing new'}.`];
+    if (failed > 0) lines.push(`⚠️ ${failed} feed${failed === 1 ? '' : 's'} couldn't be reached — Steam may be having a moment.`);
+    await interaction.editReply({ embeds: [(failed > 0 ? warnEmbed : successEmbed)({ description: lines.join('\n') })] });
   },
 
   async filter(interaction) {
-    const name = interaction.options.getString('game', true);
-    const tags = interaction.options.getString('tags', true);
-    const subRow = getSubscriptionByName(interaction.guildId, name);
+    if (!(await requireManager(interaction))) return;
+    const subRow = findFollowed(interaction);
     if (!subRow) {
       await interaction.reply({ embeds: [errorEmbed({ description: "🐀 You're not following that." })], ephemeral: true });
       return;
     }
-    setTagFilter(subRow.id, tags);
-    await interaction.reply({ embeds: [successEmbed({ description: `🐀 **${name}**'s feed is now filtered to: ${tags}` })], ephemeral: true });
+
+    const raw = interaction.options.getString('tags', true).trim();
+    if (['clear', 'none', 'off', 'all', '-'].includes(raw.toLowerCase())) {
+      setTagFilter(subRow.id, null);
+      await interaction.reply({ embeds: [successEmbed({ description: `🐀 **${subRow.gameName}** will show all news again.` })], ephemeral: true });
+      return;
+    }
+
+    const tags = [...new Set(raw.split(',').map((t) => t.trim().toLowerCase()).filter(Boolean))].join(',');
+    setTagFilter(subRow.id, tags || null);
+    await interaction.reply({ embeds: [successEmbed({ description: `🐀 **${subRow.gameName}**'s feed is now filtered to: ${tags || 'everything'}` })], ephemeral: true });
   },
 };
 
+/** Resolves the `game` option — a subscription id from autocomplete, or a typed game name. */
+function findFollowed(interaction) {
+  const value = interaction.options.getString('game', true);
+  const byId = getSubscriptionById(value);
+  if (byId && byId.guildId === interaction.guildId) return byId;
+  return getSubscriptionByName(interaction.guildId, value);
+}
+
 export const newsButtons = {
   async toggle(interaction, subscriptionId) {
+    if (!(await requireManager(interaction))) return;
     const subRow = getSubscriptionById(subscriptionId);
-    if (!subRow) {
+    if (!subRow || subRow.guildId !== interaction.guildId) {
       await interaction.deferUpdate();
       return;
     }

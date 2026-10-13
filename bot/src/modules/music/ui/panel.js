@@ -4,7 +4,10 @@ import { successEmbed, infoEmbed, errorEmbed, warnEmbed } from '../../../core/em
 import { checkChannelPermissions } from '../../../core/permissions.js';
 import { formatProgressBar } from '../../../utils/format.js';
 import { listPublicHoards, getHoardById, getHoardTracks, resolveHoardTracks, ensureCommunityFavorites, isTrackInHoard, addTrackToHoard } from '../hoards.js';
-import { getPanelRow, upsertPanelRow, deletePanelRow } from '../panelStore.js';
+import { getPanelRow, upsertPanelRow, deletePanelRow, panelMessageChannelId } from '../panelStore.js';
+import { skipOrEnd } from '../playerLifecycle.js';
+import { componentText, escapeMarkdown } from '../../../utils/text.js';
+import { logger } from '../../../core/logger.js';
 import { buildQueuePage } from './queuePage.js';
 import { getGuildConfig } from '../../../core/guildConfig.js';
 import { registerSkipVote } from '../voteSkip.js';
@@ -27,8 +30,9 @@ function nowPlayingEmbed(player) {
   return successEmbed({
     title: '🎵 The Rat Nest',
     description: [
-      `**[${track.info.title}](${track.info.uri})**`,
-      track.info.author,
+      track.info.uri ? `**[${escapeMarkdown(track.info.title)}](${track.info.uri})**` : `**${escapeMarkdown(track.info.title)}**`,
+      escapeMarkdown(track.info.author),
+      `🔊 <#${player.voiceChannelId}>`,
       '',
       progress,
       '',
@@ -76,8 +80,8 @@ function controlRows(player) {
 
   if (player.queue.tracks.length > 0) {
     const options = player.queue.tracks.slice(0, 25).map((t, i) => ({
-      label: t.info.title.slice(0, 100),
-      description: t.info.author.slice(0, 100),
+      label: componentText(t.info.title, 'Untitled track'),
+      description: componentText(t.info.author, 'Unknown artist'),
       value: String(i),
     }));
     rows.push(
@@ -95,7 +99,7 @@ function controlRows(player) {
           new StringSelectMenuBuilder()
             .setCustomId('music:panel_hoardselect')
             .setPlaceholder('Load a hoard into the queue...')
-            .addOptions(hoards.map((h) => ({ label: h.name.slice(0, 100), value: h.id }))),
+            .addOptions(hoards.map((h) => ({ label: componentText(h.name, 'Unnamed hoard'), value: h.id }))),
         ),
       );
     }
@@ -128,17 +132,35 @@ export function stopProgressLoop(player) {
   if (existing) clearInterval(existing);
 }
 
-async function refreshPanelMessage(client, player) {
-  const row = getPanelRow(player.voiceChannelId);
+async function fetchPanelMessage(client, row) {
   if (!row?.messageId) return null;
-
-  const channel = await client.channels.fetch(player.voiceChannelId).catch(() => null);
+  const channel = await client.channels.fetch(panelMessageChannelId(row)).catch(() => null);
   if (!channel) return null;
+  return channel.messages.fetch(row.messageId).catch(() => null);
+}
 
-  const message = await channel.messages.fetch(row.messageId).catch(() => null);
+async function refreshPanelMessage(client, player) {
+  const message = await fetchPanelMessage(client, getPanelRow(player.voiceChannelId));
   if (!message) return null;
+  return message.edit(buildPanelPayload(player)).catch((err) => {
+    logger.warn({ err, guildId: player.guildId }, "Couldn't edit the Rat Nest panel");
+    return null;
+  });
+}
 
-  return message.edit(buildPanelPayload(player)).catch(() => null);
+/**
+ * Where a new panel should be posted: the voice channel's own chat, or the
+ * guild's configured music channel (#rat-nest) if the bot can't post there.
+ */
+async function pickPanelChannel(client, player) {
+  const voiceChannel = await client.channels.fetch(player.voiceChannelId).catch(() => null);
+  if (voiceChannel && checkChannelPermissions(voiceChannel, ['SendMessages', 'EmbedLinks']).ok) return voiceChannel;
+
+  const fallbackId = getGuildConfig(player.guildId)?.panelChannelId;
+  const fallback = fallbackId ? await client.channels.fetch(fallbackId).catch(() => null) : null;
+  if (fallback?.isTextBased() && checkChannelPermissions(fallback, ['SendMessages', 'EmbedLinks']).ok) return fallback;
+
+  return null;
 }
 
 /**
@@ -153,20 +175,43 @@ export async function upsertPanel(client, player) {
     return edited;
   }
 
-  const channel = await client.channels.fetch(player.voiceChannelId).catch(() => null);
+  const channel = await pickPanelChannel(client, player);
   if (!channel) return null;
 
-  const permCheck = checkChannelPermissions(channel, ['SendMessages', 'EmbedLinks']);
-  if (!permCheck.ok) {
+  let message;
+  try {
+    message = await channel.send(buildPanelPayload(player));
+  } catch (err) {
+    logger.warn({ err, guildId: player.guildId }, "Couldn't post the Rat Nest panel");
     return null;
   }
 
-  const message = await channel.send(buildPanelPayload(player)).catch(() => null);
-  if (!message) return null;
-
-  upsertPanelRow({ guildId: player.guildId, voiceChannelId: player.voiceChannelId, messageId: message.id });
+  upsertPanelRow({
+    guildId: player.guildId,
+    voiceChannelId: player.voiceChannelId,
+    messageId: message.id,
+    messageChannelId: channel.id === player.voiceChannelId ? null : channel.id,
+  });
   startProgressLoop(client, player);
   return message;
+}
+
+/**
+ * Once a player is gone the panel's buttons can only error, and leaving it
+ * on "now playing" is misleading — swap it to a final idle state with no
+ * controls and forget the row (a new player posts a fresh panel).
+ */
+export async function retirePanel(client, player, reason) {
+  if (!player.voiceChannelId) return;
+  const row = getPanelRow(player.voiceChannelId);
+  const message = await fetchPanelMessage(client, row);
+  deletePanelRow(player.voiceChannelId);
+  if (!message) return;
+
+  const why = reason === 'alone-too-long' ? 'Everyone left, so I headed back to the nest.' : 'Disconnected.';
+  await message
+    .edit({ embeds: [infoEmbed({ title: '🎵 The Rat Nest', description: `🐀 ${why} Queue something with \`/play\` to start again.` })], components: [] })
+    .catch(() => {});
 }
 
 export async function teardownPanel(voiceChannelId) {
@@ -202,8 +247,10 @@ export const panelButtons = {
       return;
     }
 
-    await player.play({ clientTrack: prevTrack });
     await interaction.deferUpdate();
+    // Put what's playing now back at the front, so ⏮ then ⏭ returns to it instead of losing it.
+    if (player.queue.current) await player.queue.add(player.queue.current, 0);
+    await player.play({ clientTrack: prevTrack });
   },
 
   async panel_pauseresume(interaction) {
@@ -228,8 +275,8 @@ export const panelButtons = {
       return;
     }
 
-    await player.skip();
     await interaction.deferUpdate();
+    await skipOrEnd(player);
   },
 
   async panel_stop(interaction) {
@@ -261,6 +308,10 @@ export const panelButtons = {
     const player = requirePlayer(interaction);
     if (!(await requireSameVoice(interaction, player))) return;
 
+    if (!player.queue.current || player.queue.current.info.isStream) {
+      await interaction.update(buildPanelPayload(player));
+      return;
+    }
     await player.seek(Math.max(0, player.position - 10_000));
     await interaction.update(buildPanelPayload(player));
   },
@@ -270,7 +321,11 @@ export const panelButtons = {
     if (!(await requireSameVoice(interaction, player))) return;
 
     const track = player.queue.current;
-    await player.seek(Math.min(track.info.duration, player.position + 10_000));
+    if (!track || track.info.isStream) {
+      await interaction.update(buildPanelPayload(player));
+      return;
+    }
+    await player.seek(Math.min(track.info.duration - 1000, player.position + 10_000));
     await interaction.update(buildPanelPayload(player));
   },
 
@@ -287,7 +342,7 @@ export const panelButtons = {
     const player = requirePlayer(interaction);
     if (!(await requireSameVoice(interaction, player))) return;
 
-    player.queue.splice(0, player.queue.tracks.length);
+    await player.queue.splice(0, player.queue.tracks.length);
     await interaction.update(buildPanelPayload(player));
   },
 
@@ -352,9 +407,10 @@ export const panelSelects = {
       return;
     }
 
-    player.queue.tracks.splice(0, index);
-    await player.skip();
     await interaction.deferUpdate();
+    // Through the Queue API (not the raw array) so lavalink-client's queue store stays in sync.
+    if (index > 0) await player.queue.splice(0, index);
+    await skipOrEnd(player);
   },
 
   async panel_hoardselect(interaction) {
@@ -362,18 +418,28 @@ export const panelSelects = {
     if (!(await requireSameVoice(interaction, player))) return;
 
     const hoard = getHoardById(interaction.values[0]);
-    if (!hoard) {
+    if (!hoard || hoard.guildId !== interaction.guildId) {
       await interaction.update(buildPanelPayload(player));
       return;
     }
 
+    // Resolving a big hoard takes well over Discord's 3s interaction window.
+    await interaction.deferUpdate();
     const rows = getHoardTracks(hoard.id);
     const tracks = await resolveHoardTracks(player, rows, interaction.user);
     if (tracks.length > 0) {
-      player.queue.add(tracks);
+      await player.queue.add(tracks);
       if (!player.playing && !player.paused) await player.play();
     }
 
-    await interaction.update(buildPanelPayload(player));
+    await interaction.editReply(buildPanelPayload(player));
+    await interaction.followUp({
+      embeds: [
+        tracks.length > 0
+          ? successEmbed({ description: `🐀 Loaded **${tracks.length}** track${tracks.length === 1 ? '' : 's'} from **${escapeMarkdown(hoard.name)}**.` })
+          : warnEmbed({ description: `🐀 Couldn't load anything from **${escapeMarkdown(hoard.name)}**.` }),
+      ],
+      ephemeral: true,
+    });
   },
 };

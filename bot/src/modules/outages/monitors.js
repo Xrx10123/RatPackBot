@@ -20,7 +20,7 @@ export function listAllEnabled() {
 }
 
 export function addMonitor({ guildId, serviceSlug, serviceName }) {
-  const row = { id: randomUUID(), guildId, serviceSlug, serviceName, enabled: 1, lastStatus: null, lastCheckedAt: null, lastNotifiedAt: null };
+  const row = { id: randomUUID(), guildId, serviceSlug, serviceName, enabled: 1, lastStatus: null, lastCheckedAt: null, lastNotifiedAt: null, alerting: 0, failCount: 0 };
   db.insert(outageMonitors).values(row).run();
   return row;
 }
@@ -31,6 +31,13 @@ export function removeMonitor(id) {
 
 export function updateMonitorStatus(id, status) {
   db.update(outageMonitors).set({ lastStatus: status, lastCheckedAt: Date.now() }).where(eq(outageMonitors.id, id)).run();
+}
+
+/** Persists the outcome of evaluatePoll(). A null status keeps the last known one. */
+export function recordPoll(id, { status, failCount, alerting }) {
+  const patch = { failCount, alerting: alerting ? 1 : 0, lastCheckedAt: Date.now() };
+  if (status) patch.lastStatus = status;
+  db.update(outageMonitors).set(patch).where(eq(outageMonitors.id, id)).run();
 }
 
 export function markNotified(id) {

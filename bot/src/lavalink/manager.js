@@ -3,7 +3,7 @@ import { config } from '../config.js';
 import { logger } from '../core/logger.js';
 import { infoEmbed } from '../core/embeds.js';
 import { readSavedSessionId, saveSessionId } from './session.js';
-import { getLatestPanelRowForGuild } from '../modules/music/panelStore.js';
+import { getLatestPanelRowForGuild, panelMessageChannelId } from '../modules/music/panelStore.js';
 
 const RESUME_TIMEOUT_SECONDS = 300;
 
@@ -26,6 +26,12 @@ export function createLavalinkManager(client) {
       id: config.discord.clientId,
     },
     autoSkip: true,
+    playerOptions: {
+      // If someone right-click → Disconnects the bot (or it's kicked), tear
+      // the player down. Without this lavalink-client keeps a zombie player
+      // with no voice channel, and every later /play fails on it until a restart.
+      onDisconnect: { destroyPlayer: true, autoReconnect: false },
+    },
   });
 
   manager.nodeManager.on('connect', async (node) => {
@@ -91,7 +97,7 @@ async function reattachPlayer(client, raw) {
   }
 
   if (!row.messageId) return;
-  const channel = await client.channels.fetch(row.voiceChannelId).catch(() => null);
+  const channel = await client.channels.fetch(panelMessageChannelId(row)).catch(() => null);
   const message = channel && (await channel.messages.fetch(row.messageId).catch(() => null));
   if (!message) return;
 

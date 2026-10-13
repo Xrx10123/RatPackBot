@@ -45,6 +45,7 @@ export const voicePanels = sqliteTable('voice_panels', {
   voiceChannelId: text('voice_channel_id').primaryKey(),
   messageId: text('message_id'),
   updatedAt: integer('updated_at'),
+  messageChannelId: text('message_channel_id'), // null = the voice channel's own chat
 });
 
 // --- Games & News ---------------------------------------------------------
@@ -70,6 +71,8 @@ export const outageMonitors = sqliteTable('outage_monitors', {
   lastStatus: text('last_status'), // 'up' | 'down' | 'degraded'
   lastCheckedAt: integer('last_checked_at'),
   lastNotifiedAt: integer('last_notified_at'),
+  alerting: integer('alerting').default(0),
+  failCount: integer('fail_count').default(0),
 });
 
 export const userOutagePrefs = sqliteTable(

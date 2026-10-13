@@ -21,8 +21,19 @@ export function isAppListConfigured() {
  * (used by /news) now needs that key, contrary to the plan's "Tier 1,
  * zero-setup" assumption. Cached for 6h once fetched.
  */
+let appListInFlight = null;
+
 export async function getAppList() {
   if (appListCache && Date.now() - appListCachedAt < APP_LIST_TTL_MS) return appListCache;
+  // Share one download between everyone asking at once (startup warm-up +
+  // autocomplete keystrokes) instead of each kicking off its own.
+  appListInFlight ??= fetchAppList().finally(() => {
+    appListInFlight = null;
+  });
+  return appListInFlight;
+}
+
+async function fetchAppList() {
   const key = requireApiKey();
 
   const apps = [];
@@ -40,7 +51,7 @@ export async function getAppList() {
       max_results: '50000',
       last_appid: String(lastAppId),
     });
-    const data = await fetchJson(`${BASE}/IStoreService/GetAppList/v1/?${params}`);
+    const data = await fetchJson(`${BASE}/IStoreService/GetAppList/v1/?${params}`, { timeoutMs: 30_000 });
     const page = data.response?.apps ?? [];
     apps.push(...page.filter((a) => a.name?.trim()));
     hasMore = Boolean(data.response?.have_more_results);

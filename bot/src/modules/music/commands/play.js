@@ -3,7 +3,8 @@ import { successEmbed, errorEmbed, warnEmbed } from '../../../core/embeds.js';
 import { checkChannelPermissions } from '../../../core/permissions.js';
 import { resolveSearchQuery, isUrl } from '../sources.js';
 import { flavor, FLAVOR } from '../../../utils/ratpack.js';
-import { ensureConnectedPlayer, markBridgeNotice } from '../playerLifecycle.js';
+import { ensureConnectedPlayer, markBridgeNotice, voiceConflictEmbed } from '../playerLifecycle.js';
+import { escapeMarkdown } from '../../../utils/text.js';
 
 export const play = {
   data: new SlashCommandBuilder()
@@ -36,10 +37,14 @@ export const play = {
     await interaction.deferReply({ ephemeral: true });
 
     const query = interaction.options.getString('query', true);
-    const player = await ensureConnectedPlayer(interaction.guildId, voiceChannel);
+    const { player, conflictChannelId } = await ensureConnectedPlayer(interaction.guildId, voiceChannel);
+    if (!player) {
+      await interaction.editReply({ embeds: [voiceConflictEmbed(conflictChannelId)] });
+      return;
+    }
     markBridgeNotice(player, interaction.channelId);
 
-    const result = await player.search({ query: resolveSearchQuery(query) }, interaction.user);
+    const result = await player.search({ query: resolveSearchQuery(query) }, interaction.user).catch((err) => ({ loadType: 'error', exception: { message: err.message } }));
 
     if (!result || result.loadType === 'error') {
       await interaction.editReply({
@@ -60,20 +65,20 @@ export const play = {
     }
 
     if (result.loadType === 'playlist') {
-      player.queue.add(result.tracks);
+      await player.queue.add(result.tracks);
       await interaction.editReply({
         embeds: [
           successEmbed({
-            description: `🐀 Added **${result.tracks.length} tracks** from **${result.playlist?.name ?? 'the playlist'}** to the queue.`,
+            description: `🐀 Added **${result.tracks.length} tracks** from **${escapeMarkdown(result.playlist?.name ?? 'the playlist')}** to the queue.`,
           }),
         ],
       });
     } else {
       const track = result.tracks[0];
-      player.queue.add(track);
+      await player.queue.add(track);
       const flavorLine = isUrl(query) ? '' : flavor(FLAVOR.queueAdded);
       await interaction.editReply({
-        embeds: [successEmbed({ description: [`🐀 Queued **${track.info.title}**.`, flavorLine].filter(Boolean).join(' ') })],
+        embeds: [successEmbed({ description: [`🐀 Queued **${escapeMarkdown(track.info.title)}**.`, flavorLine].filter(Boolean).join(' ') })],
       });
     }
 

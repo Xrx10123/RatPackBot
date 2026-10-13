@@ -3,6 +3,8 @@ import { requirePlayerInVoice } from '../guards.js';
 import { successEmbed, warnEmbed, infoEmbed } from '../../../core/embeds.js';
 import { getGuildConfig } from '../../../core/guildConfig.js';
 import { registerSkipVote } from '../voteSkip.js';
+import { skipOrEnd } from '../playerLifecycle.js';
+import { escapeMarkdown } from '../../../utils/text.js';
 
 export const skip = {
   data: new SlashCommandBuilder().setName('skip').setDescription('Vote to skip the current track (or force-skip with the DJ role).'),
@@ -21,8 +23,8 @@ export const skip = {
     const result = registerSkipVote(player, interaction.member, interaction.member.voice.channel, guildConfig);
 
     if (result.skip) {
-      await player.skip();
-      await interaction.reply({ embeds: [successEmbed({ description: `⏭ Skipped **${current.info.title}**${result.forced ? ' (DJ).' : '.'}` })] });
+      await skipOrEnd(player);
+      await interaction.reply({ embeds: [successEmbed({ description: `⏭ Skipped **${escapeMarkdown(current.info.title)}**${result.forced ? ' (DJ).' : '.'}` })] });
       return;
     }
 

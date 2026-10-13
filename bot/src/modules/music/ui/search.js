@@ -3,7 +3,8 @@ import { ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder }
 import { infoEmbed, successEmbed, errorEmbed } from '../../../core/embeds.js';
 import { checkChannelPermissions } from '../../../core/permissions.js';
 import { formatDuration } from '../../../utils/format.js';
-import { ensureConnectedPlayer, markBridgeNotice } from '../playerLifecycle.js';
+import { ensureConnectedPlayer, markBridgeNotice, voiceConflictEmbed } from '../playerLifecycle.js';
+import { componentText, escapeMarkdown } from '../../../utils/text.js';
 import { isUrl } from '../sources.js';
 
 const CACHE_TTL_MS = 5 * 60 * 1000;
@@ -22,8 +23,8 @@ export function buildSearchResultsPayload(cacheKey, tracks) {
     .setPlaceholder('Pick a track...')
     .addOptions(
       tracks.slice(0, 10).map((track, i) => ({
-        label: track.info.title.slice(0, 100),
-        description: `${track.info.author} · ${track.info.isStream ? 'LIVE' : formatDuration(track.info.duration)}`.slice(0, 100),
+        label: componentText(track.info.title, 'Untitled track'),
+        description: componentText(`${track.info.author || 'Unknown artist'} · ${track.info.isStream ? 'LIVE' : formatDuration(track.info.duration)}`),
         value: String(i),
       })),
     );
@@ -43,8 +44,8 @@ function buildTrackActionPayload(cacheKey, index, track) {
   return {
     embeds: [
       infoEmbed({
-        title: track.info.title,
-        description: `${track.info.author} · ${track.info.isStream ? 'LIVE' : formatDuration(track.info.duration)}`,
+        title: componentText(track.info.title, 'Untitled track', 256),
+        description: `${escapeMarkdown(track.info.author || 'Unknown artist')} · ${track.info.isStream ? 'LIVE' : formatDuration(track.info.duration)}`,
         thumbnail: track.info.artworkUrl ?? undefined,
       }),
     ],
@@ -82,6 +83,10 @@ export const searchHandlers = {
     }
     const index = Number(interaction.values[0]);
     const track = entry.tracks[index];
+    if (!track) {
+      await interaction.deferUpdate();
+      return;
+    }
     await interaction.update(buildTrackActionPayload(cacheKey, index, track));
   },
 
@@ -95,12 +100,28 @@ export const searchHandlers = {
     if (!voiceChannel) return;
 
     const track = entry.tracks[Number(indexStr)];
-    const player = await ensureConnectedPlayer(interaction.guildId, voiceChannel);
+    // Connecting to voice + starting playback can outlast the 3s window.
+    await interaction.deferUpdate();
+    const { player, conflictChannelId } = await ensureConnectedPlayer(interaction.guildId, voiceChannel);
+    if (!player) {
+      await interaction.editReply({ embeds: [voiceConflictEmbed(conflictChannelId)], components: [] });
+      return;
+    }
     markBridgeNotice(player, interaction.channelId);
-    await player.play({ clientTrack: { ...track, requester: interaction.user } });
+    track.requester = interaction.user;
+    if (player.queue.current) {
+      // "Play Now" jumps the queue rather than throwing away what's playing:
+      // the new track goes to the front, and the current one is skipped
+      // (it stays reachable via ⏮ on the panel).
+      await player.queue.add(track, 0);
+      await player.skip();
+    } else {
+      await player.queue.add(track);
+      await player.play();
+    }
 
     cache.delete(cacheKey);
-    await interaction.update({ embeds: [successEmbed({ description: `▶ Playing **${track.info.title}** now.` })], components: [] });
+    await interaction.editReply({ embeds: [successEmbed({ description: `▶ Playing **${escapeMarkdown(track.info.title)}** now.` })], components: [] });
   },
 
   async search_addqueue(interaction, cacheKey, indexStr) {
@@ -113,12 +134,17 @@ export const searchHandlers = {
     if (!voiceChannel) return;
 
     const track = entry.tracks[Number(indexStr)];
-    const player = await ensureConnectedPlayer(interaction.guildId, voiceChannel);
+    await interaction.deferUpdate();
+    const { player, conflictChannelId } = await ensureConnectedPlayer(interaction.guildId, voiceChannel);
+    if (!player) {
+      await interaction.editReply({ embeds: [voiceConflictEmbed(conflictChannelId)], components: [] });
+      return;
+    }
     markBridgeNotice(player, interaction.channelId);
-    player.queue.add(track);
+    await player.queue.add(track);
     if (!player.playing && !player.paused) await player.play();
 
     cache.delete(cacheKey);
-    await interaction.update({ embeds: [successEmbed({ description: `🐀 Queued **${track.info.title}**.` })], components: [] });
+    await interaction.editReply({ embeds: [successEmbed({ description: `🐀 Queued **${escapeMarkdown(track.info.title)}**.` })], components: [] });
   },
 };

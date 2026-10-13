@@ -81,7 +81,9 @@ export const stats = {
           { name: 'Valorant', value: 'valorant' },
         ),
     )
-    .addStringOption((opt) => opt.setName('username').setDescription('Player name (BattleTag for Overwatch)').setRequired(true)),
+    // Capped so `games:stats_refresh:<game>:<username>` always fits Discord's
+    // 100-char customId limit (real Epic names / BattleTags are far shorter).
+    .addStringOption((opt) => opt.setName('username').setDescription('Player name (BattleTag for Overwatch)').setRequired(true).setMaxLength(60)),
 
   async execute(interaction) {
     const game = interaction.options.getString('game', true);

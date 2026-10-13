@@ -6,6 +6,8 @@ import { KNOWN_SERVICES, validateStatuspageHost } from '../providers/statuspage.
 import { checkService } from '../checkService.js';
 import { buildStatusBoardPayload } from '../ui/board.js';
 import { listMonitors, getMonitorBySlug, addMonitor, removeMonitor, updateMonitorStatus, setUserNotify } from '../monitors.js';
+import { toStatus, normalizeStatusHost } from '../alerting.js';
+import { requireManager } from '../../../core/permissions.js';
 
 const CURATED = [{ slug: 'steam', name: 'Steam' }, ...Object.entries(KNOWN_SERVICES).map(([slug, v]) => ({ slug, name: v.name }))];
 
@@ -92,8 +94,16 @@ const SUBCOMMAND_HANDLERS = {
   },
 
   async add(interaction) {
+    if (!(await requireManager(interaction))) return;
     await interaction.deferReply({ ephemeral: true });
-    const value = interaction.options.getString('service', true).trim();
+    const raw = interaction.options.getString('service', true).trim();
+    const curatedMatch = CURATED.find((s) => s.slug === raw.toLowerCase() || s.name.toLowerCase() === raw.toLowerCase());
+    const value = curatedMatch?.slug ?? normalizeStatusHost(raw);
+
+    if (!value) {
+      await interaction.editReply({ embeds: [errorEmbed({ description: `🐀 **${raw.slice(0, 100)}** isn't a known service or a status-page domain (like \`status.example.com\`).` })] });
+      return;
+    }
 
     if (getMonitorBySlug(interaction.guildId, value)) {
       await interaction.editReply({ embeds: [errorEmbed({ description: "🐀 Already monitoring that." })] });
@@ -118,6 +128,7 @@ const SUBCOMMAND_HANDLERS = {
   },
 
   async remove(interaction) {
+    if (!(await requireManager(interaction))) return;
     const slug = interaction.options.getString('service', true);
     const monitor = getMonitorBySlug(interaction.guildId, slug);
     if (!monitor) {
@@ -139,7 +150,7 @@ const SUBCOMMAND_HANDLERS = {
 
     try {
       const result = await checkService(monitor.serviceSlug);
-      const status = result.indicator === 'none' ? 'up' : result.indicator === 'minor' ? 'degraded' : 'down';
+      const status = toStatus(result.indicator);
       updateMonitorStatus(monitor.id, status);
       const embed = status === 'up' ? successEmbed({ description: `🟢 **${monitor.serviceName}** — ${result.description}` }) : errorEmbed({ description: `${status === 'down' ? '🔴' : '🟡'} **${monitor.serviceName}** — ${result.description}` });
       await interaction.editReply({ embeds: [embed] });
@@ -164,6 +175,7 @@ const SUBCOMMAND_HANDLERS = {
   },
 
   async channel(interaction) {
+    if (!(await requireManager(interaction))) return;
     const channel = interaction.options.getChannel('channel', true);
     updateGuildConfig(interaction.guildId, { outageChannelId: channel.id });
     await interaction.reply({ embeds: [successEmbed({ description: `🚨 Outage alerts now post in <#${channel.id}>.` })], ephemeral: true });

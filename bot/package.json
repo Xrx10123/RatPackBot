@@ -1,12 +1,13 @@
 {
   "name": "ratpack-bot",
   "version": "1.0.0",
-  "description": "Ratpack — a self-hosted Discord bot for ToxicRatz",
+  "description": "Ratpack \u2014 a self-hosted Discord bot for ToxicRatz",
   "type": "module",
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
-    "dev": "node --watch src/index.js"
+    "dev": "node --watch src/index.js",
+    "test": "node --import ./test/env.js --test 'test/**/*.test.js'"
   },
   "engines": {
     "node": ">=22"

@@ -31,10 +31,29 @@ export function fuzzyScore(query, target) {
 export function fuzzySearch(query, items, { key = (item) => item, limit = 25 } = {}) {
   if (!query) return items.slice(0, limit);
 
+  const q = normalizeForMatch(query);
   return items
-    .map((item) => ({ item, score: fuzzyScore(query, key(item)) }))
+    .map((item) => {
+      const target = key(item);
+      const normalized = normalizeForMatch(target);
+      return { item, score: fuzzyScore(query, target), exact: normalized === q, length: target.length };
+    })
     .filter(({ score }) => score >= 0)
-    .sort((a, b) => b.score - a.score)
+    // Subsequence scoring alone ties every target that starts with the
+    // query ("PEAK" scores the same against "PEAK" and "Peaky Blinders"),
+    // so an exact match wins outright and shorter names break the rest of
+    // the ties — otherwise the default news seed followed the wrong game.
+    .sort((a, b) => Number(b.exact) - Number(a.exact) || b.score - a.score || a.length - b.length)
     .slice(0, limit)
     .map(({ item }) => item);
+}
+
+/** Lowercases and strips ™/®/punctuation so "Overwatch® 2" exactly matches "overwatch 2". */
+export function normalizeForMatch(text) {
+  return String(text ?? '')
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[^\p{L}\p{N} ]+/gu, '')
+    .replace(/\s+/g, ' ')
+    .trim();
 }

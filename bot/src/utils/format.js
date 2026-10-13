@@ -35,6 +35,8 @@ export function parseDuration(input) {
 
   const parts = trimmed.split(':').map(Number);
   if (parts.some((n) => !Number.isFinite(n))) return null;
+  // Everything after the leading unit is a minutes/seconds field — "1:99" isn't a timestamp.
+  if (parts.slice(1).some((n) => n >= 60)) return null;
 
   let seconds = 0;
   for (const part of parts) {

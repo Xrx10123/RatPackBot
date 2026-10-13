@@ -1,6 +1,6 @@
 import { infoEmbed } from '../core/embeds.js';
-import { upsertPanel, stopProgressLoop } from '../modules/music/ui/panel.js';
-import { getPanelRow, deletePanelRow } from '../modules/music/panelStore.js';
+import { upsertPanel, stopProgressLoop, retirePanel } from '../modules/music/ui/panel.js';
+import { getPanelRow, deletePanelRow, panelMessageChannelId } from '../modules/music/panelStore.js';
 import { getGuildConfig } from '../core/guildConfig.js';
 import { logger } from '../core/logger.js';
 
@@ -40,7 +40,7 @@ export function registerLavalinkEvents(manager, client) {
   manager.on('playerMove', async (player, oldVoiceChannelId) => {
     const oldRow = getPanelRow(oldVoiceChannelId);
     if (oldRow?.messageId) {
-      const oldChannel = await client.channels.fetch(oldVoiceChannelId).catch(() => null);
+      const oldChannel = await client.channels.fetch(panelMessageChannelId(oldRow)).catch(() => null);
       const oldMessage = oldChannel && (await oldChannel.messages.fetch(oldRow.messageId).catch(() => null));
       await oldMessage?.delete().catch(() => {});
     }
@@ -48,8 +48,10 @@ export function registerLavalinkEvents(manager, client) {
     await upsertPanel(client, player);
   });
 
-  manager.on('playerDestroy', (player) => {
+  manager.on('playerDestroy', async (player, reason) => {
     stopProgressLoop(player);
+    clearDisconnectTimer(player);
+    await retirePanel(client, player, reason).catch((err) => logger.warn({ err }, "Couldn't retire panel after player destroy"));
   });
 
   manager.on('trackError', (player, track, payload) => {
@@ -61,7 +63,15 @@ export function registerLavalinkEvents(manager, client) {
   });
 
   // Auto-pause when alone, auto-disconnect after a grace period unless 24/7 is on.
+  //
+  // These fire from the raw gateway packet, which discord.js emits BEFORE it
+  // updates its own voice-state cache — so the member list has to be read
+  // after yielding a tick, or the person who just left still gets counted
+  // and the bot never notices it's alone. lavalink-client also fires
+  // playerVoiceLeave for ANY voice update elsewhere in the guild (someone
+  // muting in another channel), so this has to be idempotent.
   manager.on('playerVoiceLeave', async (player) => {
+    await new Promise((resolve) => setImmediate(resolve));
     const channel = await client.channels.fetch(player.voiceChannelId).catch(() => null);
     if (!channel || humanMemberCount(channel) > 0) return;
 
@@ -71,8 +81,10 @@ export function registerLavalinkEvents(manager, client) {
     }
 
     if (getGuildConfig(player.guildId)?.twentyFourSeven) return;
+    if (player.get('disconnectTimer')) return; // already counting down
 
     const timer = setTimeout(async () => {
+      player.set('disconnectTimer', null);
       const stillThere = await client.channels.fetch(player.voiceChannelId).catch(() => null);
       if (stillThere && humanMemberCount(stillThere) === 0) {
         await player.destroy('alone-too-long').catch(() => {});
@@ -83,17 +95,25 @@ export function registerLavalinkEvents(manager, client) {
   });
 
   manager.on('playerVoiceJoin', async (player) => {
-    const timer = player.get('disconnectTimer');
-    if (timer) {
-      clearTimeout(timer);
-      player.set('disconnectTimer', null);
-    }
+    await new Promise((resolve) => setImmediate(resolve));
+    const channel = await client.channels.fetch(player.voiceChannelId).catch(() => null);
+    if (!channel || humanMemberCount(channel) === 0) return;
+
+    clearDisconnectTimer(player);
 
     if (player.get('autoPaused')) {
       await player.resume().catch(() => {});
       player.set('autoPaused', false);
     }
   });
+}
+
+function clearDisconnectTimer(player) {
+  const timer = player.get('disconnectTimer');
+  if (timer) {
+    clearTimeout(timer);
+    player.set('disconnectTimer', null);
+  }
 }
 
 async function postBridgeNotice(client, player, channelId, panelMessage) {

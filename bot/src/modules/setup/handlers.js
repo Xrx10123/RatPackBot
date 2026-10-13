@@ -8,6 +8,7 @@ import { buildMentionStepPayload, buildRoleSelectPayload } from './ui/mentionSte
 import { buildPeachesSettingsPayload } from './ui/peachesSettingsStep.js';
 import { buildMusicSettingsPayload } from './ui/musicSettingsStep.js';
 import { verifyGuildChannels, buildVerifyEmbed } from './verify.js';
+import { requireManager } from '../../core/permissions.js';
 
 function hub(interaction) {
   return buildHubPayload(getGuildConfig(interaction.guildId));
@@ -19,17 +20,37 @@ async function createCategoryAndReturnToHub(interaction) {
     return;
   }
 
+  // Five channel creations can easily outlast Discord's 3s interaction window.
+  await interaction.deferUpdate();
   const fields = await createRatpackCategory(interaction.guild).catch(() => null);
   if (!fields) {
-    await interaction.update({ embeds: [errorEmbed({ description: "🐀 Couldn't create the category — check my permissions and try again." })], components: [] });
+    await interaction.editReply({ embeds: [errorEmbed({ description: "🐀 Couldn't create the category — check my permissions and try again." })], components: [] });
     return;
   }
 
   updateGuildConfig(interaction.guildId, fields);
-  await interaction.update(hub(interaction));
+  await interaction.editReply(hub(interaction));
 }
 
-export const setupButtons = {
+/**
+ * /setup itself is gated by setDefaultMemberPermissions, but components
+ * aren't — and the welcome message's "Set Me Up" button is posted publicly,
+ * so without this any member could open the hub and reroute channels or set
+ * outage alerts to ping @here. Every setup interaction goes through it.
+ */
+function managersOnly(handlers) {
+  return Object.fromEntries(
+    Object.entries(handlers).map(([key, handler]) => [
+      key,
+      async (interaction, ...args) => {
+        if (!(await requireManager(interaction))) return;
+        await handler(interaction, ...args);
+      },
+    ]),
+  );
+}
+
+export const setupButtons = managersOnly({
   async welcome_start(interaction) {
     await interaction.message.edit({ components: [] }).catch(() => {});
     await interaction.reply({ ...hub(interaction), ephemeral: true });
@@ -90,9 +111,9 @@ export const setupButtons = {
   async music_open(interaction) {
     await interaction.update(buildMusicSettingsPayload(getGuildConfig(interaction.guildId)));
   },
-};
+});
 
-export const setupSelects = {
+export const setupSelects = managersOnly({
   async chan_select(interaction, purpose) {
     const channel = interaction.values[0];
     const meta = CHANNEL_PURPOSES[purpose];
@@ -109,9 +130,9 @@ export const setupSelects = {
     updateGuildConfig(interaction.guildId, { defaultMention: 'role', defaultRoleId: interaction.values[0] });
     await interaction.update(hub(interaction));
   },
-};
+});
 
-export const setupModals = {
+export const setupModals = managersOnly({
   async tz_modal(interaction) {
     const tz = interaction.fields.getTextInputValue('tz').trim();
     if (!isValidTimezone(tz)) {
@@ -121,4 +142,4 @@ export const setupModals = {
     updateGuildConfig(interaction.guildId, { timezone: tz });
     await interaction.update(hub(interaction));
   },
-};
+});

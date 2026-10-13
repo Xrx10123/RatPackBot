@@ -1,5 +1,5 @@
 import { PermissionsBitField } from 'discord.js';
-import { permissionErrorEmbed } from './embeds.js';
+import { permissionErrorEmbed, errorEmbed } from './embeds.js';
 
 const PERMISSION_LABELS = {
   ViewChannel: 'View Channel',
@@ -37,4 +37,23 @@ export function checkChannelPermissions(channel, required = []) {
       fixUrl: `https://discord.com/channels/${channel.guild.id}/${channel.id}`,
     }),
   };
+}
+
+/** True if the member can manage the server — the bar for changing any guild-wide Ratpack setting. */
+export function isManager(member) {
+  return Boolean(member?.permissions?.has(PermissionsBitField.Flags.ManageGuild));
+}
+
+/**
+ * Guard for config-changing interactions. Slash commands can be gated with
+ * setDefaultMemberPermissions, but buttons/selects/modals (and individual
+ * subcommands of an otherwise-public command) can't — so those check here.
+ * Replies ephemerally and returns false if the member isn't a manager.
+ */
+export async function requireManager(interaction) {
+  if (isManager(interaction.member)) return true;
+  const payload = { embeds: [errorEmbed({ description: '🐀 Only server managers (Manage Server) can change that.' })], ephemeral: true };
+  if (interaction.deferred || interaction.replied) await interaction.followUp(payload);
+  else await interaction.reply(payload);
+  return false;
 }

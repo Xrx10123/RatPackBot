@@ -18,11 +18,19 @@ export function createHoard({ guildId, ownerId, name, isPublic = false }) {
 
 export const COMMUNITY_FAVORITES_NAME = 'Community Favorites';
 
+/** Hoards owned by the server itself (Community Favorites, Peaches' Hoard) rather than a person. */
+export function isCommunityOwned(hoard) {
+  return Boolean(hoard?.ownerId?.includes(':'));
+}
+
 /** The shared, guild-wide "liked songs" hoard — created on first use, one per guild. */
 export function ensureCommunityFavorites(guildId) {
-  const existing = db.select().from(hoards).where(and(eq(hoards.guildId, guildId), eq(hoards.name, COMMUNITY_FAVORITES_NAME))).get();
+  // Matched on owner, not just name — a member's own hoard that happens to
+  // be called "Community Favorites" must not swallow everyone's ❤️s.
+  const ownerId = `community:${guildId}`;
+  const existing = db.select().from(hoards).where(and(eq(hoards.guildId, guildId), eq(hoards.ownerId, ownerId))).get();
   if (existing) return existing;
-  return createHoard({ guildId, ownerId: `community:${guildId}`, name: COMMUNITY_FAVORITES_NAME, isPublic: true });
+  return createHoard({ guildId, ownerId, name: COMMUNITY_FAVORITES_NAME, isPublic: true });
 }
 
 export function isTrackInHoard(hoardId, uri) {
@@ -47,11 +55,26 @@ export function listPublicHoards(guildId, limit = 25) {
     .all();
 }
 
+/**
+ * Looks up a hoard the user can see by name. Names are only unique per
+ * owner, so when both the user's own hoard and someone else's public one
+ * share a name, the user's own always wins (it's the one they can edit).
+ */
 export function getHoardByName(guildId, userId, name) {
   return db
     .select()
     .from(hoards)
     .where(and(eq(hoards.guildId, guildId), eq(hoards.name, name), sql`(${hoards.ownerId} = ${userId} OR ${hoards.isPublic} = 1)`))
+    .orderBy(sql`CASE WHEN ${hoards.ownerId} = ${userId} THEN 0 ELSE 1 END`)
+    .get();
+}
+
+/** Only the user's own hoard by that name — used for "you already have one" checks. */
+export function getOwnHoardByName(guildId, userId, name) {
+  return db
+    .select()
+    .from(hoards)
+    .where(and(eq(hoards.guildId, guildId), eq(hoards.name, name), eq(hoards.ownerId, userId)))
     .get();
 }
 
@@ -93,8 +116,10 @@ export function addTrackToHoard(hoardId, track) {
   return row;
 }
 
+/** Returns true if a track was actually removed. */
 export function removeTrackFromHoard(hoardId, position) {
-  return db.delete(hoardTracks).where(and(eq(hoardTracks.hoardId, hoardId), eq(hoardTracks.position, position))).run();
+  const result = db.delete(hoardTracks).where(and(eq(hoardTracks.hoardId, hoardId), eq(hoardTracks.position, position))).run();
+  return result.changes > 0;
 }
 
 export function clearHoardTracks(hoardId) {
@@ -106,16 +131,28 @@ export function clearHoardTracks(hoardId) {
  * Hoards don't store encoded track strings, so links are re-resolved on load —
  * this also self-heals dead links (a failed row is just skipped).
  */
+const RESOLVE_CONCURRENCY = 5;
+
 export async function resolveHoardTracks(player, rows, requester) {
-  const resolved = [];
-  for (const row of rows) {
-    const query = row.uri || `ytsearch:${[row.title, row.artist].filter(Boolean).join(' ')}`;
-    try {
-      const result = await player.search({ query }, requester);
-      if (result?.tracks?.length) resolved.push(result.tracks[0]);
-    } catch {
-      // dead link or source outage — skip and keep loading the rest
+  // A few lookups in flight at once — strictly one-at-a-time made a 50-track
+  // hoard take most of a minute — while keeping the hoard's order intact.
+  const resolved = new Array(rows.length).fill(null);
+  let next = 0;
+
+  async function worker() {
+    while (next < rows.length) {
+      const i = next++;
+      const row = rows[i];
+      const query = row.uri || `ytsearch:${[row.title, row.artist].filter(Boolean).join(' ')}`;
+      try {
+        const result = await player.search({ query }, requester);
+        if (result?.tracks?.length) resolved[i] = result.tracks[0];
+      } catch {
+        // dead link or source outage — skip and keep loading the rest
+      }
     }
   }
-  return resolved;
+
+  await Promise.all(Array.from({ length: Math.min(RESOLVE_CONCURRENCY, rows.length) }, worker));
+  return resolved.filter(Boolean);
 }

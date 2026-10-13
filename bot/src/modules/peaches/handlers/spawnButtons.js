@@ -15,8 +15,10 @@ function formatCooldown(ms) {
 function makeSpawnButtonHandler(action) {
   return async (interaction, spawnId) => {
     const spawn = getSpawnById(spawnId);
-    if (!spawn || spawn.resolved) {
-      await interaction.reply({ embeds: [errorEmbed({ description: "🐀 This spawn's gone." })], ephemeral: true });
+    // The spawn tick only sweeps every 15 minutes, so check expiry here too —
+    // otherwise a "leaves in 7 minutes" sneaky spawn stayed clickable for up to 22.
+    if (!spawn || spawn.resolved || Date.now() > spawn.expiresAt) {
+      await interaction.reply({ embeds: [errorEmbed({ description: "🐀 She's already scurried off." })], ephemeral: true });
       return;
     }
 

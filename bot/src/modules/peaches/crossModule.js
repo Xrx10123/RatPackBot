@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, sql } from 'drizzle-orm';
 import { db } from '../../db/index.js';
 import { hoards, hoardTracks } from '../../db/schema.js';
 import { getGuildConfig } from '../../core/guildConfig.js';
@@ -45,11 +45,20 @@ function getPeachesHoardTracks(guildId) {
 
 function addToPeachesHoard(guildId, track) {
   const hoard = ensurePeachesHoard(guildId, PEACHES_HOARD_NAME);
-  const count = db.select().from(hoardTracks).where(eq(hoardTracks.hoardId, hoard.id)).all().length;
+  if (!track.info.uri) return;
+  const already = db.select().from(hoardTracks).where(and(eq(hoardTracks.hoardId, hoard.id), eq(hoardTracks.uri, track.info.uri))).get();
+  if (already) return; // she's picky, not repetitive
+
+  // MAX+1 rather than COUNT — counts collide with existing positions once anything's been removed.
+  const [{ next }] = db
+    .select({ next: sql`COALESCE(MAX(${hoardTracks.position}), -1) + 1` })
+    .from(hoardTracks)
+    .where(eq(hoardTracks.hoardId, hoard.id))
+    .all();
   db.insert(hoardTracks).values({
     id: randomUUID(),
     hoardId: hoard.id,
-    position: count,
+    position: next,
     title: track.info.title,
     artist: track.info.author,
     uri: track.info.uri,
@@ -87,10 +96,11 @@ export function registerCrossModuleHooks(client, lavalinkManager) {
     try {
       if (!message.guild || message.author.id !== client.user.id) return;
       const guildConfig = getGuildConfig(message.guild.id);
-      const state = getCurrentState(message.guild.id);
 
       if (guildConfig?.newsChannelId && message.channelId === guildConfig.newsChannelId) {
         if (!isCrossModuleEnabled(message.guild.id, 'news') || !canFire(message.guild.id, 'news', 0.2)) return;
+        // Only read (and decay-write) her state once we know she's actually commenting.
+        const state = getCurrentState(message.guild.id);
         await message.reply({ content: `🐀 ${state.name} has also seen this. She is unimpressed.` }).catch(() => {});
         return;
       }

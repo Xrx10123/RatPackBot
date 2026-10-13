@@ -4,6 +4,7 @@ import { fuzzySearch } from '../../../utils/fuzzy.js';
 import { checkService } from '../checkService.js';
 import { listMonitors } from '../monitors.js';
 import { KNOWN_SERVICES } from '../providers/statuspage.js';
+import { normalizeStatusHost } from '../alerting.js';
 
 const CURATED = [{ slug: 'steam', name: 'Steam' }, ...Object.entries(KNOWN_SERVICES).map(([slug, v]) => ({ slug, name: v.name }))];
 
@@ -14,7 +15,11 @@ function candidateList(guildId) {
 }
 
 /** Shared by /server and its refresh button so both stay in sync. */
-export async function buildServerCheckPayload(slug) {
+export async function buildServerCheckPayload(rawSlug) {
+  const slug = CURATED.some((c) => c.slug === rawSlug) ? rawSlug : normalizeStatusHost(rawSlug);
+  if (!slug) {
+    return { embeds: [warnEmbed({ description: "🐀 Don't know how to check that one yet — pick a suggestion, or `/outage add` it if it's on Statuspage." })] };
+  }
   try {
     const result = await checkService(slug);
     const up = result.indicator === 'none';
@@ -28,7 +33,10 @@ export async function buildServerCheckPayload(slug) {
     );
     return { embeds: [embed], components: [row] };
   } catch {
-    return { embeds: [warnEmbed({ description: "🐀 Don't know how to check that one yet — try `/outage add` if it's on Statuspage, or `/outage search`." })] };
+    const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder().setCustomId(`outages:server_refresh:${slug}`).setEmoji('🔄').setLabel('Try again').setStyle(ButtonStyle.Secondary),
+    );
+    return { embeds: [warnEmbed({ description: `🐀 Couldn't reach the status page for **${slug}** right now — it may be down itself, or not a Statuspage site.` })], components: [row] };
   }
 }
 

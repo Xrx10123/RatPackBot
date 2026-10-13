@@ -9,11 +9,10 @@ import { fetchJson } from '../../../utils/httpJson.js';
  * wrong; if it does respond, that only proves the gateway is up, not that
  * the store/community/matchmaking are healthy.
  */
+// Network failures throw (like the Statuspage provider) rather than
+// reporting 'major', so the checker's consecutive-failure threshold applies
+// — one dropped request shouldn't page the server that Steam is down.
 export async function checkSteamReachability() {
-  try {
-    const data = await fetchJson('https://api.steampowered.com/ISteamWebAPIUtil/GetServerInfo/v1/');
-    return { name: 'Steam', indicator: data.servertime ? 'none' : 'major', description: data.servertime ? 'API reachable' : 'Unreachable' };
-  } catch {
-    return { name: 'Steam', indicator: 'major', description: 'API unreachable' };
-  }
+  const data = await fetchJson('https://api.steampowered.com/ISteamWebAPIUtil/GetServerInfo/v1/');
+  return { name: 'Steam', indicator: data.servertime ? 'none' : 'major', description: data.servertime ? 'API reachable' : 'Unreachable' };
 }
