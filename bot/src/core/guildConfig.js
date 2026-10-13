@@ -9,6 +9,7 @@ export const CHANNEL_PURPOSES = {
   news: { label: 'Game News', emoji: '📰', field: 'newsChannelId', defaultName: 'game-updates' },
   outage: { label: 'Server Status', emoji: '🚨', field: 'outageChannelId', defaultName: 'server-status' },
   log: { label: 'Logs', emoji: '📋', field: 'logChannelId', defaultName: 'ratpack-logs' },
+  social: { label: 'Birthdays & Reminders', emoji: '🎉', field: 'socialChannelId', defaultName: 'rat-chat' },
 };
 
 export function getGuildConfig(guildId) {

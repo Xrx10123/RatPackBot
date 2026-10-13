@@ -32,9 +32,9 @@ Peaches, plus social features, with Peaches as the voice of the whole bot.
 - Strictly rate-limited per channel; managers can toggle it per channel (`/pet chat`)
 - The bot detects the Message Content intent at startup; without it she answers only @mentions and replies
 
-## Phase 5: Social
-- Birthdays: `/birthday set`, posted in the configured channel at local midnight, with an optional "Birthday Rat" role for the day
-- Reminders: `/remindme in 2h …` / `at 9pm …`, posted in-channel by Peaches; survives restarts
+## Phase 5: Social — ✅ done
+- Birthdays: `/birthday set|remove|list|role`, posted in the new Birthdays & Reminders channel at local midnight, with a cheese gift, wish buttons and an optional birthday role for the day
+- Reminders: `/remind me|list|cancel` (`in 2h`, `at 9pm`, `tomorrow 8am`), posted in-channel by Peaches; survives restarts
 
 ## Later / ideas parking lot
 - Music: autoplay/radio when the queue ends, "guess the song", listening stats

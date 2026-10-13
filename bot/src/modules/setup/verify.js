@@ -16,7 +16,7 @@ async function checkOne(guild, channelId) {
   return { status: missing.length === 0 ? 'ok' : 'broken', channel, missing };
 }
 
-/** Runs the /setup check verification across all four configured channels. */
+/** Runs the /setup check verification across every configured channel. */
 export async function verifyGuildChannels(guild, guildConfig) {
   const results = {};
   for (const [purpose, meta] of Object.entries(CHANNEL_PURPOSES)) {

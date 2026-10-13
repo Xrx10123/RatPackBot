@@ -23,7 +23,7 @@ async function createCategoryAndReturnToHub(interaction) {
 
   // Five channel creations can easily outlast Discord's 3s interaction window.
   await interaction.deferUpdate();
-  const fields = await createRatpackCategory(interaction.guild).catch(() => null);
+  const fields = await createRatpackCategory(interaction.guild, getGuildConfig(interaction.guildId)).catch(() => null);
   if (!fields) {
     await interaction.editReply({ embeds: [errorEmbed({ description: "🐀 Couldn't create the category — check my permissions and try again." })], components: [] });
     return;

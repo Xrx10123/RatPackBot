@@ -16,6 +16,8 @@ export const guilds = sqliteTable('guilds', {
   djRoleId: text('dj_role_id'),
   voteSkipThreshold: integer('vote_skip_threshold').default(50),
   twentyFourSeven: integer('twenty_four_seven').default(0),
+  socialChannelId: text('social_channel_id'),
+  birthdayRoleId: text('birthday_role_id'),
 });
 
 // --- Music --------------------------------------------------------------
@@ -214,4 +216,42 @@ export const peachesGames = sqliteTable('peaches_games', {
   expiresAt: integer('expires_at').notNull(),
   resolved: integer('resolved').notNull().default(0),
   winnerId: text('winner_id'),
+});
+
+// --- Social -----------------------------------------------------------------
+
+export const memberBirthdays = sqliteTable(
+  'member_birthdays',
+  {
+    guildId: text('guild_id').notNull(),
+    userId: text('user_id').notNull(),
+    month: integer('month').notNull(),
+    day: integer('day').notNull(),
+    year: integer('year'),
+    lastCelebratedYear: integer('last_celebrated_year'),
+    roleGrantedAt: integer('role_granted_at'),
+  },
+  (t) => ({ pk: primaryKey({ columns: [t.guildId, t.userId] }) }),
+);
+
+export const birthdayWishes = sqliteTable(
+  'birthday_wishes',
+  {
+    guildId: text('guild_id').notNull(),
+    birthdayUserId: text('birthday_user_id').notNull(),
+    year: integer('year').notNull(),
+    wisherId: text('wisher_id').notNull(),
+  },
+  (t) => ({ pk: primaryKey({ columns: [t.guildId, t.birthdayUserId, t.year, t.wisherId] }) }),
+);
+
+export const reminders = sqliteTable('reminders', {
+  id: text('id').primaryKey(),
+  guildId: text('guild_id').notNull(),
+  channelId: text('channel_id').notNull(),
+  userId: text('user_id').notNull(),
+  text: text('text').notNull(),
+  dueAt: integer('due_at').notNull(),
+  createdAt: integer('created_at').notNull(),
+  delivered: integer('delivered').notNull().default(0),
 });

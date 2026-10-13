@@ -11,7 +11,7 @@ export function buildChannelStepPayload(purpose, config) {
     description: [
       `Currently: ${current ? `<#${current}>` : '*not set*'}`,
       '',
-      'Pick an existing text channel, or create the full 🐀 Ratpack category — that builds all four channels at once.',
+      'Pick an existing text channel, or let me create the 🐀 Ratpack category — it builds every channel that isn\'t set up yet.',
     ].join('\n'),
   });
 
@@ -37,12 +37,22 @@ export function buildChannelSelectPayload(purpose) {
   };
 }
 
-/** Creates the 🐀 Ratpack category with all four purpose channels at once. */
-export async function createRatpackCategory(guild) {
-  const category = await guild.channels.create({ name: '🐀 Ratpack', type: ChannelType.GuildCategory });
+const CATEGORY_NAME = '🐀 Ratpack';
+
+/**
+ * Creates the 🐀 Ratpack category and a channel for every purpose that
+ * isn't set up yet (or whose channel was deleted). Re-running it — e.g. to
+ * get a newly added purpose — reuses the existing category and never
+ * duplicates channels that already work.
+ */
+export async function createRatpackCategory(guild, config = {}) {
+  const existingCategory = guild.channels.cache.find((c) => c.type === ChannelType.GuildCategory && c.name === CATEGORY_NAME);
+  const category = existingCategory ?? (await guild.channels.create({ name: CATEGORY_NAME, type: ChannelType.GuildCategory }));
 
   const fields = {};
   for (const meta of Object.values(CHANNEL_PURPOSES)) {
+    const currentId = config?.[meta.field];
+    if (currentId && guild.channels.cache.has(currentId)) continue;
     const channel = await guild.channels.create({ name: meta.defaultName, type: ChannelType.GuildText, parent: category.id });
     fields[meta.field] = channel.id;
   }
