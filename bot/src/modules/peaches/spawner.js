@@ -4,6 +4,8 @@ import { ensureState, getCurrentState, bumpLastSpawnAt } from './state.js';
 import { getActiveSpawn, createSpawn, pickVariant, setSpawnMessageId, resolveSpawn } from './spawns.js';
 import { buildSpawnPayload } from './ui/spawnEmbed.js';
 import { VARIANTS } from './variants.js';
+import { getActiveSeason } from './seasons.js';
+import { getGuildConfig } from '../../core/guildConfig.js';
 
 const MIN_HOURS = 4;
 const MAX_HOURS = 8;
@@ -59,7 +61,7 @@ export async function spawnNow(client, guildId, channelId, { force = false } = {
   const channel = await client.channels.fetch(channelId).catch(() => null);
   if (!channel) return { ok: false, reason: 'channel' };
 
-  const variant = pickVariant();
+  const variant = pickVariant(getActiveSeason(new Date(), getGuildConfig(guildId)?.timezone));
   const spawn = createSpawn({ guildId, channelId, variant, expiresInMs: VARIANTS[variant].expiresInMs });
 
   // Once the row above exists it blocks every future spawn (active-spawn

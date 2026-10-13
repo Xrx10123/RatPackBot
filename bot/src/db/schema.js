@@ -103,6 +103,17 @@ export const peachesState = sqliteTable('peaches_state', {
   lastSpawnAt: integer('last_spawn_at'),
   lastDecayAt: integer('last_decay_at'),
   renamedAt: integer('renamed_at'),
+  birthday: text('birthday'), // 'MM-DD' — the day she first joined this server
+  birthYear: integer('birth_year'),
+  lastBirthdayYear: integer('last_birthday_year'),
+});
+
+export const peachesCollectibles = sqliteTable('peaches_collectibles', {
+  id: text('id').primaryKey(),
+  guildId: text('guild_id').notNull(),
+  userId: text('user_id').notNull(),
+  itemKey: text('item_key').notNull(),
+  foundAt: integer('found_at').notNull(),
 });
 
 export const peachesSpawns = sqliteTable('peaches_spawns', {

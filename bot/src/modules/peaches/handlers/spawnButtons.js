@@ -2,6 +2,11 @@ import { errorEmbed, successEmbed } from '../../../core/embeds.js';
 import { getSpawnById } from '../spawns.js';
 import { getActionCooldownRemaining, applyInteraction, getFirstInteractor, syncLevel } from '../state.js';
 import { titleForLevel } from '../progression.js';
+import { maybeFindSomething, foundLine } from '../collectibles.js';
+import { getActiveSeason } from '../seasons.js';
+import { getGuildConfig } from '../../../core/guildConfig.js';
+
+const FIND_CHANCE = 0.06;
 import { VARIANTS } from '../variants.js';
 import { buildSpawnPayload } from '../ui/spawnEmbed.js';
 import { getMediaForMoment, applyMedia } from '../media.js';
@@ -40,6 +45,12 @@ function makeSpawnButtonHandler(action) {
 
     const updatedSpawnPayload = await buildSpawnPayload(state, spawn);
     await interaction.message.edit(updatedSpawnPayload).catch(() => {});
+
+    const season = getActiveSeason(new Date(), getGuildConfig(interaction.guildId)?.timezone);
+    const found = maybeFindSomething(interaction.guildId, interaction.user.id, { chance: FIND_CHANCE * (variant.multiplier ?? 1), season });
+    if (found) {
+      await interaction.followUp({ embeds: [successEmbed({ description: foundLine(state.name, interaction.user, found) })] }).catch(() => {});
+    }
 
     const { level, leveledUp } = syncLevel(interaction.guildId);
     if (leveledUp) {

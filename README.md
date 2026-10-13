@@ -10,7 +10,7 @@ Self-hosted, modular, multi-guild. Built with Node.js 22, discord.js v14, and La
 - **Setup** — a guided `/setup` wizard that configures channels, timezone, and notification preferences, with one-click auto-creation of the channel category.
 - **Game stats & news** — `/stats`, `/steam`, and a Steam-appid-based news tracker (`/news`) that follows patch notes for whatever games your server cares about.
 - **Outage monitoring** — `/outage` and `/status` watch real services (Discord, Steam, Cloudflare, and anything else on Atlassian Statuspage) and ping the server when something goes down or recovers.
-- **Peaches** — a shared pet rat who wanders into channels, needs feeding/watering/playing with, and gets increasingly mischievous if the server neglects her. She levels up as the server takes care of her (`/pet status` shows her stats and progress), and sleeps overnight in your server's timezone, so no 3 AM pings (`/pet config quiet_hours` to turn that off).
+- **Peaches** — a shared pet rat who wanders into channels, needs feeding/watering/playing with, and gets increasingly mischievous if the server neglects her. She levels up as the server takes care of her (`/pet status` shows her stats and progress), and sleeps overnight in your server's timezone, so no 3 AM pings (`/pet config quiet_hours` to turn that off). Her birthday in each server is the day she joined it, and she throws a party with cake for everyone. She also finds odd little things and hands them to people (`/pet album`). Seasonal events: from Oct 15 to Oct 31 she wears a witch hat, Ghost Peaches haunts the place, and every visit has a 🎃 Trick or Treat button.
 - **Logs** — settings changes ("@someone set alert pings to @here") and anything that breaks get posted to the Logs channel you pick in `/setup`, so managers can see what changed and when.
 
 ## Prerequisites
@@ -77,4 +77,4 @@ Tests use Node's built-in test runner and a throwaway SQLite database per test f
 
 ## Peaches' image folder
 
-Drop a PNG/GIF/MP4 named after a mood, spawn variant, action, or mischief type (e.g. `angry.png`, `feed.gif`) into `./data/peaches-images/` and Peaches will use it instead of the built-in default for that moment.
+Drop a PNG/GIF/MP4 named after a mood, spawn variant, action, or mischief type (e.g. `angry.png`, `feed.gif`) into `./data/peaches-images/` and Peaches will use it instead of the built-in default for that moment. That includes the seasonal art: `halloween`, `ghost`, and `birthday`. The built-in versions of those are original drawings in `bot/assets/peaches/`, made by `bot/tools/draw_peaches.py`.

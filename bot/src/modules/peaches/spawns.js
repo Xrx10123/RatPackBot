@@ -9,12 +9,15 @@ const VARIANTS = [
   { variant: 'angry', weight: 7.5 },
   { variant: 'sneaky', weight: 7.5 },
   { variant: 'queen', weight: 7.5 },
+  { variant: 'ghost', weight: 20, season: 'halloween' },
 ];
 
-export function pickVariant() {
-  const total = VARIANTS.reduce((sum, v) => sum + v.weight, 0);
-  let roll = Math.random() * total;
-  for (const v of VARIANTS) {
+/** Seasonal variants only roll while their season is active. */
+export function pickVariant(season = null, random = Math.random) {
+  const pool = VARIANTS.filter((v) => !v.season || v.season === season);
+  const total = pool.reduce((sum, v) => sum + v.weight, 0);
+  let roll = random() * total;
+  for (const v of pool) {
     if (roll < v.weight) return v.variant;
     roll -= v.weight;
   }

@@ -10,10 +10,10 @@ Peaches, plus social features, with Peaches as the voice of the whole bot.
 - **Delivery:** birthdays and reminders post in a channel (configured in `/setup`), not by DM.
 - **Chat reactions:** the Message Content intent is enabled in the Developer Portal (Bot → Privileged Gateway Intents).
 
-## Phase 1: Halloween and life events (before Oct 31)
+## Phase 1: Halloween and life events — ✅ done
 - Seasonal mode: Peaches wears a Halloween costume in her embeds from Oct 15 to Oct 31, with spooky flavor text
 - Spawn variant "Ghost Peaches" (October only) and a trick-or-treat button that hands out a treat or a trick
-- Peaches' own birthday (a date set by managers) with a celebration post
+- Peaches' own birthday: per server, the day she joined it, with a celebration post and cake slices
 - Collectibles album: "Peaches found something…" items she drops; `/pet album` shows the set
 
 ## Phase 2: Cheese economy and shop

@@ -36,6 +36,15 @@ export const VARIANTS = {
     color: 0xffd700,
     intro: ['has graced you with her presence.', 'demands your attention, peasant.'],
   },
+  // Halloween-only (see spawns.js pickVariant). Shorter-lived and spookier.
+  ghost: {
+    label: 'Ghost Peaches',
+    multiplier: 1.5,
+    expiresInMs: 10 * 60 * 1000,
+    color: 0xd8d8f0,
+    season: 'halloween',
+    intro: ['drifts in under a bedsheet. Boo.', 'is haunting this channel. Politely.', 'phases through the wall, rattling a tiny chain.'],
+  },
 };
 
 export const MOOD_DISPLAY = {

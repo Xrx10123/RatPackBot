@@ -8,3 +8,4 @@ data/peaches-images/*
 *.log
 npm-debug.log*
 .DS_Store
+bot/assets/peaches/_*_preview.png

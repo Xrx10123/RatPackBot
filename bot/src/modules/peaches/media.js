@@ -1,5 +1,6 @@
 import { existsSync } from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { AttachmentBuilder } from 'discord.js';
 import { config } from '../../config.js';
 
@@ -9,6 +10,11 @@ import { config } from '../../config.js';
 // here and it overrides the built-in default below for that moment.
 const IMAGE_ASSETS_DIR = config.peaches.imageDir;
 const LOCAL_EXTENSIONS = ['png', 'gif', 'jpg', 'jpeg', 'webp', 'mp4', 'webm'];
+
+// Original artwork that ships with the bot (drawn by bot/tools/draw_peaches.py)
+// for moments no stock clip covers — her Halloween costume, Ghost Peaches,
+// her birthday. A same-named file in the override folder above still wins.
+const BUNDLED_ASSETS_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..', 'assets', 'peaches');
 
 // Built-in defaults so Peaches has personality out of the box without any
 // setup. Each key is a POOL, not a single URL — one URL per key meant the
@@ -110,17 +116,18 @@ const DEFAULT_MEDIA_POOLS = {
 const VIDEO_EXTENSIONS = ['.mp4', '.webm'];
 const isVideo = (s) => VIDEO_EXTENSIONS.some((ext) => s.toLowerCase().includes(ext));
 
-function findLocalAsset(key) {
+function findLocalAsset(dir, key) {
   for (const ext of LOCAL_EXTENSIONS) {
-    const filePath = path.join(IMAGE_ASSETS_DIR, `${key}.${ext}`);
+    const filePath = path.join(dir, `${key}.${ext}`);
     if (existsSync(filePath)) return filePath;
   }
   return null;
 }
 
-/** Local folder always wins over the built-in pool for a given moment key; otherwise picks randomly from the pool. */
+/** Override folder wins, then bundled artwork, then a random pick from the built-in pool. */
 export function getMediaForMoment(key) {
-  const localPath = findLocalAsset(key);
+  if (!key) return null;
+  const localPath = findLocalAsset(IMAGE_ASSETS_DIR, key) ?? findLocalAsset(BUNDLED_ASSETS_DIR, key);
   if (localPath) return { type: 'file', filePath: localPath };
 
   const pool = DEFAULT_MEDIA_POOLS[key];

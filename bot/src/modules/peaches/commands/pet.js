@@ -8,6 +8,10 @@ import { getSpawnChannelIds, setSpawnChannelIds, updatePeachesConfig, ensurePeac
 import { resolveAllPending } from '../mischiefStore.js';
 import { spawnNow } from '../spawner.js';
 import { getMediaForMoment, applyMedia } from '../media.js';
+import { SEASONS, getActiveSeason } from '../seasons.js';
+import { getBirthdayInfo, birthdayStatusLine, ensureBirthday } from '../birthday.js';
+import { ITEMS, RARITY, getAlbum, getServerFoundKeys } from '../collectibles.js';
+import { getGuildConfig } from '../../../core/guildConfig.js';
 import { audit } from '../../../core/guildLog.js';
 
 const LEADERBOARD_CATEGORIES = [
@@ -98,6 +102,12 @@ export const pet = {
         .setDescription('Rename Peaches (once per week).')
         .addStringOption((o) => o.setName('name').setDescription('New name (1-32 chars)').setRequired(true).setMaxLength(32)),
     )
+    .addSubcommand((sub) =>
+      sub
+        .setName('album')
+        .setDescription('Everything Peaches has found and given you.')
+        .addUserOption((o) => o.setName('user').setDescription('Whose album (default: you)')),
+    )
     .addSubcommand((sub) => sub.setName('calm').setDescription('Emergency reset — mood to Content, clears pending mischief.'))
     .addSubcommand((sub) =>
       sub
@@ -114,7 +124,9 @@ export const pet = {
 
 const SUBCOMMAND_HANDLERS = {
   async status(interaction) {
+    if (interaction.guild) ensureBirthday(interaction.guild);
     const state = getCurrentState(interaction.guildId);
+    const seasonKey = getActiveSeason(new Date(), getGuildConfig(interaction.guildId)?.timezone);
     const { xp } = syncLevel(interaction.guildId);
     const { level, into, needed } = levelProgress(xp);
     const mood = MOOD_DISPLAY[state.mood] ?? MOOD_DISPLAY.content;
@@ -133,17 +145,53 @@ const SUBCOMMAND_HANDLERS = {
       meter('🧼', 'Cleanliness', state.cleanliness),
       '',
       `Mood: **${mood.label}**${isSleepingNow(interaction.guildId) ? ' · 💤 asleep for the night' : ''}`,
-    ];
+      birthdayStatusLine(getBirthdayInfo(interaction.guildId)),
+      seasonKey ? SEASONS[seasonKey].statusLine : null,
+    ].filter((line) => line !== null);
 
     const payload = {
       embeds: [
         successEmbed({
-          title: `${mood.emoji} ${state.name}`,
+          title: `${seasonKey ? `${SEASONS[seasonKey].emoji} ` : ''}${mood.emoji} ${state.name}`,
           description: lines.join('\n'),
         }),
       ],
     };
-    await interaction.reply(await applyMedia(payload, getMediaForMoment(state.mood)));
+    const mediaKey = seasonKey && Math.random() < 0.5 ? SEASONS[seasonKey].media : state.mood;
+    await interaction.reply(await applyMedia(payload, getMediaForMoment(mediaKey)));
+  },
+
+  async album(interaction) {
+    const user = interaction.options.getUser('user') ?? interaction.user;
+    const album = getAlbum(interaction.guildId, user.id);
+    const serverFound = getServerFoundKeys(interaction.guildId);
+    const seasonKey = getActiveSeason(new Date(), getGuildConfig(interaction.guildId)?.timezone);
+    const state = getCurrentState(interaction.guildId);
+
+    const sections = Object.entries(RARITY)
+      .reverse()
+      .map(([rarity, meta]) => {
+        const entries = ITEMS.filter((item) => item.rarity === rarity).map((item) => {
+          const count = album.get(item.key);
+          if (count) return `${item.emoji} ${item.name}${count > 1 ? ` ×${count}` : ''}`;
+          const hint = item.season ? ` *(${item.season === 'birthday' ? 'her birthday' : SEASONS[item.season]?.label ?? item.season}${item.season === seasonKey ? ' — now!' : ' only'})*` : '';
+          return `❔ ???${hint}`;
+        });
+        return `${meta.emoji} **${meta.label}**\n${entries.join(' · ')}`;
+      });
+
+    const owned = ITEMS.filter((item) => album.has(item.key)).length;
+    const embed = infoEmbed({
+      title: `🗃️ ${user.displayName}'s Album — ${owned}/${ITEMS.length}`,
+      description: [
+        owned === 0 ? `${state.name} hasn't given ${user.id === interaction.user.id ? 'you' : 'them'} anything yet. Keep looking after her — she drops things for her favourite people.` : null,
+        ...sections,
+      ]
+        .filter(Boolean)
+        .join('\n\n'),
+    });
+    embed.setFooter({ text: `🐀 The whole server has found ${serverFound.size}/${ITEMS.length} different things` });
+    await interaction.reply({ embeds: [embed] });
   },
 
   async spawn(interaction) {
