@@ -9,3 +9,4 @@ data/peaches-images/*
 npm-debug.log*
 .DS_Store
 bot/assets/peaches/_*_preview.png
+bot/assets/peaches/_*.png

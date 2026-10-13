@@ -77,6 +77,8 @@ Tests use Node's built-in test runner and a throwaway SQLite database per test f
 - **Permission denied writing to `./data`** — on Linux hosts, the bot container runs as a non-root user (uid 1000). If `./data` is owned by a different user on the host, run `sudo chown -R 1000:1000 ./data` once.
 - **A song shows in the panel but ends instantly / never plays** — check `docker compose logs lavalink` for `AllClientsFailedException` / "This video requires login" / "unavailable". This is YouTube's bot detection, and it's common even on residential IPs now — a cloud VPS makes it worse. Fix: set `YOUTUBE_OAUTH_ENABLED=true` in `.env`, restart the `lavalink` container, watch `docker compose logs -f lavalink` for a one-time URL + code, authorize with a (burner) Google account, then copy the refresh token it prints into `YOUTUBE_REFRESH_TOKEN` so it persists across restarts. See the comments above those vars in `.env.example` for the full walkthrough.
 
-## Peaches' image folder
+## Peaches' art
 
-Drop a PNG/GIF/MP4 named after a mood, spawn variant, action, or mischief type (e.g. `angry.png`, `feed.gif`) into `./data/peaches-images/` and Peaches will use it instead of the built-in default for that moment. That includes the seasonal art: `halloween`, `ghost`, `winter`, `frosty`, and `birthday`. The built-in versions of those are original drawings in `bot/assets/peaches/`, made by `bot/tools/draw_peaches.py`.
+Every picture of Peaches is from one matching set of original animated GIFs in `bot/assets/peaches/`: her moods, visitor variants, care actions, mischief, birthday and seasonal events (27 in all). They're drawn by `bot/tools/draw_peaches.py` (`python3 bot/tools/draw_peaches.py --sheet` re-renders them and writes a preview sheet). Nothing is downloaded at runtime.
+
+To use your own picture for a moment, drop a GIF/PNG/MP4 with that moment's name (e.g. `angry.png`, `feed.gif`) into `./data/peaches-images/`. Yours wins over the built-in art. The names match the files in `bot/assets/peaches/`.

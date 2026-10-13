@@ -16,7 +16,7 @@ export async function buildCrumbsPayload(name, mischiefId, line) {
   const row = new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId(`peaches:crumbs_thank:${mischiefId}`).setEmoji('🧀').setLabel('Thanks!').setStyle(ButtonStyle.Success),
   );
-  return applyMedia({ embeds: [successEmbed({ description: line })], components: [row] }, getMediaForMoment('thriving'));
+  return applyMedia({ embeds: [successEmbed({ description: line })], components: [row] }, getMediaForMoment('crumbs'));
 }
 
 export async function buildGiftPayload(name, mischiefId) {
@@ -31,7 +31,7 @@ export async function buildBitePayload(name, mention, line) {
   const row = new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId('peaches:bite_react').setEmoji('😤').setLabel('Ouch!').setStyle(ButtonStyle.Secondary),
   );
-  return applyMedia({ content: mention, embeds: [errorEmbed({ description: line })], components: [row] }, getMediaForMoment('grumpy'));
+  return applyMedia({ content: mention, embeds: [errorEmbed({ description: line })], components: [row] }, getMediaForMoment('bite'));
 }
 
 export async function buildHolePayload(name, mischiefId) {
