@@ -4,6 +4,7 @@ import { getGuildConfig } from '../../../core/guildConfig.js';
 import { VARIANTS, MOOD_DISPLAY, pickLine } from '../variants.js';
 import { SEASONS, getActiveSeason } from '../seasons.js';
 import { getMediaForMoment, applyMedia } from '../media.js';
+import { outfitLine, outfitEmojis } from '../wardrobe.js';
 
 /** Which media key a spawn shows: variant art first, then seasonal art (half the time), then mood. */
 export function spawnMediaKey(spawn, state, season, random = Math.random) {
@@ -20,10 +21,13 @@ export async function buildSpawnPayload(state, spawn, { now = new Date() } = {})
 
   const lines = [`🐀 **${state.name}** ${variant.intro ? pickLine(variant.intro) : 'has appeared!'}`];
   if (season && spawn.variant !== 'ghost') lines.push(`${season.emoji} ${state.name} ${pickLine(season.costume)}`);
+  const outfit = outfitLine(spawn.guildId);
+  if (outfit) lines.push(outfit);
   lines.push(`${mood.emoji} ${state.name} ${pickLine(mood.flavor)}`, '', '🧀 Feed · 💧 Water · 🎾 Play · 😴 Let Her Sleep · 🧼 Clean Cage');
   if (seasonKey === 'halloween') lines.push('🍬 Trick or treat? Everyone gets one knock per visit.');
 
-  const title = `${season ? `${season.emoji} ` : ''}${variant.label} has appeared!`;
+  const worn = outfitEmojis(spawn.guildId);
+  const title = `${season ? `${season.emoji} ` : ''}${variant.label}${worn ? ` ${worn}` : ''} has appeared!`;
   const embed = successEmbed({ title, description: lines.join('\n') });
   embed.setColor(variant.color ?? season?.color ?? embed.data.color);
   embed.setTimestamp(spawn.expiresAt); // shows Discord's relative "leaves in X" countdown

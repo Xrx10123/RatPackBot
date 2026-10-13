@@ -6,13 +6,14 @@ import { mischiefTick } from './mischief.js';
 import { registerCrossModuleHooks } from './crossModule.js';
 import { getLavalinkManager } from '../../lavalink/manager.js';
 import { eventButtons } from './handlers/eventButtons.js';
+import { shopButtons, shopSelects } from './handlers/shopButtons.js';
 import { birthdayTick, ensureBirthday } from './birthday.js';
 
 export default {
   name: 'peaches',
   commands: [pet],
-  buttons: { ...spawnButtons, ...mischiefButtons, ...eventButtons },
-  selects: {},
+  buttons: { ...spawnButtons, ...mischiefButtons, ...eventButtons, ...shopButtons },
+  selects: { ...shopSelects },
   modals: {},
   // Her birthday in each server is the day she joined it — record it right away.
   events: [{ name: 'guildCreate', execute: async (client, guild) => ensureBirthday(guild) }],

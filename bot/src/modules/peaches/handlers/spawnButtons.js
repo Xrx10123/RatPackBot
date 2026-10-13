@@ -3,6 +3,7 @@ import { getSpawnById } from '../spawns.js';
 import { getActionCooldownRemaining, applyInteraction, getFirstInteractor, syncLevel } from '../state.js';
 import { titleForLevel } from '../progression.js';
 import { maybeFindSomething, foundLine } from '../collectibles.js';
+import { reward, earnedSuffix } from '../economy.js';
 import { getActiveSeason } from '../seasons.js';
 import { getGuildConfig } from '../../../core/guildConfig.js';
 
@@ -38,8 +39,9 @@ function makeSpawnButtonHandler(action) {
     const isFirst = !getFirstInteractor(spawnId);
     const state = applyInteraction(interaction.guildId, spawnId, interaction.user.id, action, variant.multiplier);
 
+    const earned = reward(interaction.guildId, interaction.user.id, action, variant.multiplier);
     const replyPayload = {
-      embeds: [successEmbed({ description: `🐀 ${interaction.user} ${ACTION_LABELS[action]}.${isFirst ? ' First to help out today!' : ''}` })],
+      embeds: [successEmbed({ description: `🐀 ${interaction.user} ${ACTION_LABELS[action]}.${isFirst ? ' First to help out today!' : ''}${earnedSuffix(earned)}` })],
     };
     await interaction.reply(await applyMedia(replyPayload, getMediaForMoment(action)));
 

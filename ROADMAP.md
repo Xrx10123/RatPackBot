@@ -16,10 +16,11 @@ Peaches, plus social features, with Peaches as the voice of the whole bot.
 - Peaches' own birthday: per server, the day she joined it, with a celebration post and cake slices
 - Collectibles album: "Peaches found something…" items she drops; `/pet album` shows the set
 
-## Phase 2: Cheese economy and shop
+## Phase 2: Cheese economy and shop — ✅ done
 - Cheese wallet per member, earned from care actions, mischief cleanup and mini-game wins
 - `/pet shop` sells treats (stat boosts) and cosmetics (outfits and accessories shown on her embeds)
-- `/pet wardrobe` to dress her; seasonal items are available only in season
+- `/pet wardrobe` to dress her (a shared server wardrobe; seasonal items are sold only in season)
+- `/pet wallet`, plus a Cheese Earned leaderboard
 
 ## Phase 3: Mini-games
 - Hide-and-seek: she hides in a random channel, and the first to find her with `/pet find` wins cheese

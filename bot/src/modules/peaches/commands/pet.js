@@ -12,6 +12,9 @@ import { SEASONS, getActiveSeason } from '../seasons.js';
 import { getBirthdayInfo, birthdayStatusLine, ensureBirthday } from '../birthday.js';
 import { ITEMS, RARITY, getAlbum, getServerFoundKeys } from '../collectibles.js';
 import { getGuildConfig } from '../../../core/guildConfig.js';
+import { getWallet, getRichest } from '../economy.js';
+import { outfitLine, outfitEmojis } from '../wardrobe.js';
+import { buildShopPayload, buildWardrobePayload } from '../ui/shopUi.js';
 import { audit } from '../../../core/guildLog.js';
 
 const LEADERBOARD_CATEGORIES = [
@@ -20,6 +23,7 @@ const LEADERBOARD_CATEGORIES = [
   { name: 'Holes Investigated', value: 'holesInvestigated' },
   { name: 'Walls Knocked', value: 'wallsKnocked' },
   { name: 'Fealty Pledged', value: 'fealtyPledged' },
+  { name: 'Cheese Earned (all-time)', value: 'cheeseLifetime' },
 ];
 
 const BAD_WORDS = ['nigger', 'faggot', 'retard', 'cunt']; // minimal blocklist per the design doc's "basic slur filter"
@@ -102,6 +106,14 @@ export const pet = {
         .setDescription('Rename Peaches (once per week).')
         .addStringOption((o) => o.setName('name').setDescription('New name (1-32 chars)').setRequired(true).setMaxLength(32)),
     )
+    .addSubcommand((sub) => sub.setName('shop').setDescription('Spend your cheese on treats and outfits for her.'))
+    .addSubcommand((sub) => sub.setName('wardrobe').setDescription('Dress her in something from the shared wardrobe.'))
+    .addSubcommand((sub) =>
+      sub
+        .setName('wallet')
+        .setDescription('How much cheese you (or someone) have.')
+        .addUserOption((o) => o.setName('user').setDescription('Whose wallet (default: you)')),
+    )
     .addSubcommand((sub) =>
       sub
         .setName('album')
@@ -145,6 +157,7 @@ const SUBCOMMAND_HANDLERS = {
       meter('🧼', 'Cleanliness', state.cleanliness),
       '',
       `Mood: **${mood.label}**${isSleepingNow(interaction.guildId) ? ' · 💤 asleep for the night' : ''}`,
+      outfitLine(interaction.guildId),
       birthdayStatusLine(getBirthdayInfo(interaction.guildId)),
       seasonKey ? SEASONS[seasonKey].statusLine : null,
     ].filter((line) => line !== null);
@@ -152,7 +165,7 @@ const SUBCOMMAND_HANDLERS = {
     const payload = {
       embeds: [
         successEmbed({
-          title: `${seasonKey ? `${SEASONS[seasonKey].emoji} ` : ''}${mood.emoji} ${state.name}`,
+          title: `${seasonKey ? `${SEASONS[seasonKey].emoji} ` : ''}${mood.emoji} ${state.name} ${outfitEmojis(interaction.guildId)}`.trim(),
           description: lines.join('\n'),
         }),
       ],
@@ -247,10 +260,46 @@ const SUBCOMMAND_HANDLERS = {
     });
   },
 
+  async shop(interaction) {
+    const { name } = getCurrentState(interaction.guildId);
+    const season = getActiveSeason(new Date(), getGuildConfig(interaction.guildId)?.timezone);
+    await interaction.reply({ ...buildShopPayload(interaction.guildId, interaction.user.id, season, name), ephemeral: true });
+  },
+
+  async wardrobe(interaction) {
+    const { name } = getCurrentState(interaction.guildId);
+    await interaction.reply({ ...buildWardrobePayload(interaction.guildId, name), ephemeral: true });
+  },
+
+  async wallet(interaction) {
+    const user = interaction.options.getUser('user') ?? interaction.user;
+    const wallet = getWallet(interaction.guildId, user.id);
+    const you = user.id === interaction.user.id;
+    await interaction.reply({
+      embeds: [
+        infoEmbed({
+          title: `🧀 ${user.displayName}'s Cheese`,
+          description: [
+            `**${wallet.cheese} 🧀** to spend`,
+            `${wallet.lifetime} 🧀 earned all-time`,
+            '',
+            you ? 'Spend it in `/pet shop`. Earn more by looking after her and cleaning up her messes.' : null,
+          ]
+            .filter((l) => l !== null)
+            .join('\n'),
+        }),
+      ],
+      ephemeral: true,
+    });
+  },
+
   async leaderboard(interaction) {
     const category = interaction.options.getString('category') ?? 'cheeseFed';
     const label = LEADERBOARD_CATEGORIES.find((c) => c.value === category)?.name ?? 'Cheese Fed';
-    const rows = getLeaderboard(interaction.guildId, category, 10);
+    const rows =
+      category === 'cheeseLifetime'
+        ? getRichest(interaction.guildId, 10).map((w) => ({ userId: w.userId, cheeseLifetime: `${w.lifetime} 🧀` }))
+        : getLeaderboard(interaction.guildId, category, 10);
 
     if (rows.length === 0) {
       await interaction.reply({ embeds: [infoEmbed({ description: '🐀 No stats yet.' })] });

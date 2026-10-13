@@ -106,7 +106,31 @@ export const peachesState = sqliteTable('peaches_state', {
   birthday: text('birthday'), // 'MM-DD' — the day she first joined this server
   birthYear: integer('birth_year'),
   lastBirthdayYear: integer('last_birthday_year'),
+  outfitHat: text('outfit_hat'),
+  outfitAccessory: text('outfit_accessory'),
 });
+
+export const peachesWallets = sqliteTable(
+  'peaches_wallets',
+  {
+    guildId: text('guild_id').notNull(),
+    userId: text('user_id').notNull(),
+    cheese: integer('cheese').notNull().default(0),
+    lifetime: integer('lifetime').notNull().default(0),
+  },
+  (t) => ({ pk: primaryKey({ columns: [t.guildId, t.userId] }) }),
+);
+
+export const peachesWardrobe = sqliteTable(
+  'peaches_wardrobe',
+  {
+    guildId: text('guild_id').notNull(),
+    itemKey: text('item_key').notNull(),
+    boughtBy: text('bought_by').notNull(),
+    boughtAt: integer('bought_at').notNull(),
+  },
+  (t) => ({ pk: primaryKey({ columns: [t.guildId, t.itemKey] }) }),
+);
 
 export const peachesCollectibles = sqliteTable('peaches_collectibles', {
   id: text('id').primaryKey(),

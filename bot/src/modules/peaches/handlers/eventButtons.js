@@ -10,6 +10,7 @@ import { getActiveSeason } from '../seasons.js';
 import { maybeFindSomething, giveItem, hasItemSince, foundLine, getItem } from '../collectibles.js';
 import { pickLine } from '../variants.js';
 import { getBirthdayInfo } from '../birthday.js';
+import { reward, earnedSuffix } from '../economy.js';
 
 const TREAT_CHANCE = 0.6;
 const TREAT_ITEM_CHANCE = 0.45;
@@ -56,7 +57,8 @@ export const eventButtons = {
 
     if (Math.random() < TREAT_CHANCE) {
       nudgeStats(interaction.guildId, { happiness: 5 });
-      const lines = [pickLine(TREATS)(state.name)];
+      const earned = reward(interaction.guildId, interaction.user.id, 'treat');
+      const lines = [`${pickLine(TREATS)(state.name)}${earnedSuffix(earned)}`];
       const item = maybeFindSomething(interaction.guildId, interaction.user.id, { chance: TREAT_ITEM_CHANCE, season, onlySeasonal: true });
       if (item) lines.push('', foundLine(state.name, interaction.user, item));
       await interaction.reply({ embeds: [successEmbed({ title: `🍬 Treat for ${interaction.user.displayName}!`, description: lines.join('\n') })] });
@@ -81,10 +83,11 @@ export const eventButtons = {
       return;
     }
     giveItem(interaction.guildId, interaction.user.id, 'cake_slice');
+    const earned = reward(interaction.guildId, interaction.user.id, 'cake');
     const state = nudgeStats(interaction.guildId, { happiness: 10 });
     const item = getItem('cake_slice');
     await interaction.reply({
-      embeds: [successEmbed({ description: `${item.emoji} ${interaction.user} grabbed a slice of ${state.name}'s birthday cake and wished her a happy birthday! It's in your \`/pet album\` now.` })],
+      embeds: [successEmbed({ description: `${item.emoji} ${interaction.user} grabbed a slice of ${state.name}'s birthday cake and wished her a happy birthday! It's in your \`/pet album\` now.${earnedSuffix(earned)}` })],
     });
   },
 };
