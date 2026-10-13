@@ -13,7 +13,7 @@ Requires Pillow.
 import math
 import os
 import sys
-from PIL import Image, ImageDraw, ImageFilter
+from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 OUT = os.path.join(os.path.dirname(__file__), '..', 'assets', 'peaches')
 
@@ -44,6 +44,18 @@ def p(v):
     return int(round(v * K))
 
 
+FONT_PATH = 'DejaVuSans-Bold.ttf'
+_fonts = {}
+
+
+def glyph(d, x, y, text, size, color):
+    """A crisp text glyph (?, !, ♪, Z) centred on (x, y) — cleaner than hand-drawn arcs."""
+    key = round(size * 4) / 4
+    if key not in _fonts:
+        _fonts[key] = ImageFont.truetype(FONT_PATH, max(1, p(key)))
+    d.text((p(x), p(y)), text, fill=color, font=_fonts[key], anchor='mm')
+
+
 def pts(points):
     return [(p(x), p(y)) for x, y in points]
 
@@ -62,23 +74,15 @@ def wave(t, cycles=1.0, phase=0.0):
 
 # --- stage ------------------------------------------------------------------
 
-def stage(img, top, bottom, floor=None, vignette=True):
-    """Soft vertical gradient, a floor band, and a gentle vignette — every scene's backdrop."""
+def stage(img, top, bottom=None, floor=None, vignette=False):
+    """Every scene's backdrop: one flat colour and a floor band. Flat on
+    purpose — gradients band into visible stripes in a 256-colour GIF."""
     d = ImageDraw.Draw(img, 'RGBA')
-    h = img.size[1]
-    for y in range(h):
-        d.line([0, y, img.size[0], y], fill=lerp(top, bottom, y / h))
+    d.rectangle([0, 0, img.size[0], img.size[1]], fill=top)
     if floor:
-        d.rectangle([0, p(214), img.size[0], h], fill=floor)
-        d.line([0, p(214), img.size[0], p(214)], fill=tuple(max(0, c - 18) for c in floor), width=p(1.2))
-    if vignette:
-        v = Image.new('L', img.size, 0)
-        vd = ImageDraw.Draw(v)
-        vd.ellipse([-p(70), -p(80), img.size[0] + p(70), img.size[1] + p(80)], fill=255)
-        v = v.filter(ImageFilter.GaussianBlur(p(36)))
-        shade = Image.new('RGBA', img.size, (60, 30, 40, 16))
-        img.paste(shade, (0, 0), Image.eval(v, lambda x: 255 - x))
-    return ImageDraw.Draw(img, 'RGBA')
+        d.rectangle([0, p(214), img.size[0], img.size[1]], fill=floor)
+        d.line([0, p(214), img.size[0], p(214)], fill=tuple(max(0, c - 22) for c in floor), width=p(1.4))
+    return d
 
 
 def shadow(img, cx, cy, rx, ry, alpha=60):
@@ -127,14 +131,21 @@ def peaches(img, cx, cy, t, expr='open', mouth='smile', paws='down', look=0.0, f
     d = ImageDraw.Draw(img, 'RGBA')
 
     # tail (behind everything)
+    # tail: comes out from under her back, runs along the floor and curls up at the tip, tapering
     tail = []
-    for i in range(26):
-        u = i / 25
-        x = cx - 34 - 74 * u
-        y = cy + 30 + 18 * u + 9 * u * wave(t, tail_speed, -u * 0.6)
+    for i in range(28):
+        u = i / 27
+        x = cx - 26 - 72 * u
+        y = cy + 37 + 2 * u - 24 * u ** 3 + 4 * u * u * wave(t, tail_speed, -u * 0.8)
         tail.append((x, y))
-    d.line(pts(tail), fill=LINE, width=p(7.5), joint='curve')
-    d.line(pts(tail), fill=PINK, width=p(4.6), joint='curve')
+    for i in range(len(tail) - 1):
+        u = i / (len(tail) - 1)
+        d.line(pts(tail[i:i + 2]), fill=LINE, width=p(7.6 - 3.6 * u))
+        d.ellipse(box(*tail[i + 1], (3.8 - 1.8 * u), (3.8 - 1.8 * u)), fill=LINE)
+    for i in range(len(tail) - 1):
+        u = i / (len(tail) - 1)
+        d.line(pts(tail[i:i + 2]), fill=PINK, width=p(4.8 - 2.6 * u))
+        d.ellipse(box(*tail[i + 1], (2.4 - 1.3 * u), (2.4 - 1.3 * u)), fill=PINK)
 
     # silhouette outline first (one clean outline around body+head+ears), then fills
     for ex, ey, rx, ry in [(cx, cy, 47, 41), (r.hx, r.hy, 30, 26), (r.hx + 27, r.hy + 8, 17, 12), (r.hx - 23, r.hy - 22, 16, 16), (r.hx - 7, r.hy - 26, 17, 17)]:
@@ -170,20 +181,11 @@ def peaches(img, cx, cy, t, expr='open', mouth='smile', paws='down', look=0.0, f
             ty = ey + 6 + 22 * (t % 1.0)
             d.ellipse(box(ex - 1, ty, 2.4, 3.4), fill=(140, 200, 255, int(255 * (1 - t % 1.0))))
 
-    # mouth (under the snout)
-    mx, my = r.hx + 30, r.hy + 17
-    if mouth == 'smile':
-        d.arc(box(mx - 3, my, 3.4, 2.6), 10, 170, fill=INK, width=p(1.5))
-        d.arc(box(mx + 3, my, 3.4, 2.6), 10, 170, fill=INK, width=p(1.5))
-    elif mouth == 'open':
-        d.ellipse(box(mx, my + 2, 4, 3.5), fill=(150, 60, 70))
-    elif mouth == 'chew':
-        if (t * 8) % 2 < 1:
-            d.ellipse(box(mx, my + 2, 3.6, 3), fill=(150, 60, 70))
-        else:
-            d.line(pts([(mx - 4, my + 2), (mx + 4, my + 2)]), fill=INK, width=p(1.5))
-    elif mouth == 'frown':
-        d.arc(box(mx, my + 5, 5, 3.5), 200, 340, fill=INK, width=p(1.6))
+    # mouth: only drawn when it's doing something (open / chewing) — a resting
+    # mouth under the snout just reads as a smudge at this size
+    mx, my = r.hx + 31, r.hy + 19
+    if mouth == 'open' or (mouth == 'chew' and (t * 8) % 2 < 1):
+        d.ellipse(box(mx, my, 3.6, 3), fill=(150, 60, 70))
 
     # whiskers
     wob = wave(t, 2) * 1.6
@@ -194,7 +196,11 @@ def peaches(img, cx, cy, t, expr='open', mouth='smile', paws='down', look=0.0, f
     for fx in (cx + 22, cx - 12):
         outlined_ellipse(d, fx, cy + 39, 10, 5, PINK, w=1.6)
     if paws == 'down':
-        outlined_ellipse(d, r.paw[0], r.paw[1], 7, 6, PINK, w=1.6)
+        # two little front paws held together at her chest, with toes
+        for px_, py_ in ((cx + 38, cy + 4), (cx + 45, cy + 9)):
+            outlined_ellipse(d, px_, py_, 5.2, 4.2, PINK, w=1.4)
+            for k in (-1.8, 0, 1.8):
+                d.line(pts([(px_ + 2.2, py_ + k), (px_ + 4.6, py_ + k * 1.2)]), fill=PINK_DEEP, width=p(0.8))
     elif paws == 'up':
         outlined_ellipse(d, r.held[0] - 8, r.held[1] + 4, 6.5, 5.5, PINK, w=1.6)
         outlined_ellipse(d, r.held[0] + 4, r.held[1] + 8, 6.5, 5.5, PINK, w=1.6)
@@ -204,12 +210,14 @@ def peaches(img, cx, cy, t, expr='open', mouth='smile', paws='down', look=0.0, f
 # --- props & accessories ----------------------------------------------------
 
 def sparkle(d, x, y, size, t, phase=0.0, color=(255, 236, 140)):
-    s = size * (0.55 + 0.45 * (0.5 + 0.5 * wave(t, 2, phase)))
+    s = max(3.0, size) * (0.6 + 0.4 * (0.5 + 0.5 * wave(t, 2, phase)))
     d.polygon(pts([(x, y - s), (x + s * 0.28, y - s * 0.28), (x + s, y), (x + s * 0.28, y + s * 0.28), (x, y + s), (x - s * 0.28, y + s * 0.28), (x - s, y), (x - s * 0.28, y - s * 0.28)]), fill=color)
 
 
 def heart(d, x, y, size, color=(255, 120, 160), alpha=255):
-    c = (*color, alpha)
+    if size < 1.2:
+        return
+    c = color
     d.ellipse(box(x - size * 0.5, y - size * 0.25, size * 0.55, size * 0.55), fill=c)
     d.ellipse(box(x + size * 0.5, y - size * 0.25, size * 0.55, size * 0.55), fill=c)
     d.polygon(pts([(x - size * 1.02, y - size * 0.05), (x + size * 1.02, y - size * 0.05), (x, y + size * 1.05)]), fill=c)
@@ -293,20 +301,24 @@ def cape(d, cx, cy, t, color=(176, 36, 60)):
 
 
 def scarf(d, cx, cy, t, color=(56, 168, 98), stripe=(232, 70, 70)):
-    sway = wave(t) * 3
-    d.rounded_rectangle([p(cx + 6), p(cy - 24), p(cx + 52), p(cy - 11)], radius=p(5), fill=color, outline=LINE, width=p(1.3))
-    outlined_poly(d, [(cx + 14, cy - 14), (cx + 26, cy - 14), (cx + 22 + sway, cy + 20), (cx + 10 + sway, cy + 18)], color, w=1.3)
-    for k in range(3):
-        d.line(pts([(cx + 13 + sway * 0.5, cy + 1 + k * 6), (cx + 23 + sway * 0.5, cy + 1 + k * 6)]), fill=stripe, width=p(2))
+    """Wrapped around the neck (where head meets body), one end hanging down her chest."""
+    sway = wave(t) * 2.5
+    band = [(cx + 4, cy - 30), (cx + 22, cy - 22), (cx + 44, cy - 18), (cx + 56, cy - 22), (cx + 56, cy - 12), (cx + 44, cy - 6), (cx + 22, cy - 10), (cx + 2, cy - 18)]
+    outlined_poly(d, band, color, w=1.4)
+    for k, x in enumerate((14, 30, 46)):
+        d.line(pts([(cx + x, cy - 24 + (k == 2) * 3), (cx + x + 2, cy - 12)]), fill=stripe, width=p(2.4))
+    end = [(cx + 30, cy - 12), (cx + 42, cy - 12), (cx + 40 + sway, cy + 14), (cx + 28 + sway, cy + 14)]
+    outlined_poly(d, end, color, w=1.4)
+    d.line(pts([(cx + 31 + sway * 0.5, cy + 2), (cx + 41 + sway * 0.5, cy + 2)]), fill=stripe, width=p(2.4))
+    for k in range(4):
+        d.line(pts([(cx + 29 + k * 3.5 + sway, cy + 14), (cx + 29 + k * 3.5 + sway, cy + 19)]), fill=color, width=p(1.6))
 
 
 def zzz(d, x, y, t, color=(230, 236, 255)):
     for i in range(3):
         u = (t + i / 3) % 1.0
-        size = 5 + 4 * u
-        zx, zy = x + 14 * u + i * 2, y - 34 * u
-        a = int(255 * min(1, (1 - u) * 1.8))
-        d.line(pts([(zx - size, zy - size), (zx + size, zy - size), (zx - size, zy + size), (zx + size, zy + size)]), fill=(*color, a), width=p(1.8))
+        size = 9 + 9 * u * (1 - u) * 2.5
+        glyph(d, x + 16 * u + i * 2, y - 36 * u, 'Z', size, color)
 
 
 def bubbles(d, t, area, count=14, color=(255, 255, 255)):
@@ -315,10 +327,9 @@ def bubbles(d, t, area, count=14, color=(255, 255, 255)):
         u = (t + i / count) % 1.0
         x = x0 + ((i * 37) % 100) / 100 * (x1 - x0) + wave(t, 1, i * 0.3) * 3
         y = y1 - (y1 - y0) * u
-        r = 2.5 + (i % 4) * 1.5
-        a = int(220 * (1 - u * 0.7))
-        d.ellipse(box(x, y, r, r), outline=(*color, a), width=p(1.2))
-        d.ellipse(box(x - r * 0.35, y - r * 0.35, r * 0.25, r * 0.25), fill=(*color, a))
+        r = (3 + (i % 4) * 1.5) * (1 - u * 0.5)
+        d.ellipse(box(x, y, r, r), outline=color, width=p(1.3))
+        d.ellipse(box(x - r * 0.35, y - r * 0.35, r * 0.28, r * 0.28), fill=color)
 
 
 def rain(d, t, x0, x1, y0, y1, count=12):
@@ -326,7 +337,7 @@ def rain(d, t, x0, x1, y0, y1, count=12):
         u = (t * 2 + i / count) % 1.0
         x = x0 + (i * 53 % 100) / 100 * (x1 - x0)
         y = y0 + (y1 - y0) * u
-        d.line(pts([(x, y), (x - 1.5, y + 6)]), fill=(140, 170, 220, 200), width=p(1.4))
+        d.line(pts([(x, y), (x - 1.5, y + 6)]), fill=(140, 170, 220), width=p(1.4))
 
 
 def falling(d, t, count, draw_one):
@@ -358,7 +369,7 @@ def s_thriving(img, t):
     d = stage(img, (255, 230, 244), (240, 206, 246), floor=(234, 196, 236))
     for i in range(5):
         u = (t + i / 5) % 1.0
-        heart(d, 210 + i * 18 + wave(t, 1, i * 0.2) * 6, 170 - 120 * u, 5 + 3 * (i % 2), alpha=int(255 * (1 - u)))
+        heart(d, 210 + i * 18 + wave(t, 1, i * 0.2) * 6, 170 - 120 * u, (5 + 3 * (i % 2)) * min(1, (1 - u) * 3))
     peaches(img, PX, PY + bob(t, 8, 2), t, expr='happy', mouth='open', tail_speed=2)
     d = ImageDraw.Draw(img, 'RGBA')
     for i, (sx, sy) in enumerate([(54, 70), (240, 60), (280, 120), (70, 130)]):
@@ -366,18 +377,17 @@ def s_thriving(img, t):
 
 
 def s_restless(img, t):
-    d = stage(img, (255, 247, 214), (251, 228, 168), floor=(242, 214, 150))
+    d = stage(img, (255, 243, 205), floor=(242, 214, 150))
     # the cheese drawer she keeps staring at
     d.rounded_rectangle([p(230), p(120), p(300), p(212)], radius=p(4), fill=(196, 146, 100), outline=LINE, width=p(1.6))
     d.rounded_rectangle([p(238), p(150), p(292), p(176)], radius=p(3), fill=(214, 166, 118), outline=LINE, width=p(1.3))
     d.ellipse(box(265, 163, 3.5, 3.5), fill=GOLD)
+    cheese_wedge(d, 265, 112, 0.45)
     dx = wave(t, 2) * 5
-    peaches(img, PX + dx, PY, t, expr='shifty', mouth='frown', tail_speed=3)
+    peaches(img, PX + dx, PY, t, expr='shifty', tail_speed=3)
     d = ImageDraw.Draw(img, 'RGBA')
-    for i, (qx, qy) in enumerate([(206, 96), (222, 80)]):
-        a = int(255 * (0.5 + 0.5 * wave(t, 1, i * 0.5)))
-        d.arc(box(qx, qy, 6, 6), 200, 20, fill=(150, 110, 60, a), width=p(2.2))
-        d.ellipse(box(qx + 1, qy + 11, 1.6, 1.6), fill=(150, 110, 60, a))
+    for i, (qx, qy) in enumerate([(204, 92), (222, 74)]):
+        glyph(d, qx, qy + wave(t, 1, i * 0.5) * 3, '?', 16 + 3 * i, (176, 120, 60))
 
 
 def s_grumpy(img, t):
@@ -393,25 +403,33 @@ def s_neglected(img, t):
     # cobweb in the corner
     for a in range(0, 91, 18):
         rad = math.radians(a)
-        d.line(pts([(0, 0), (56 * math.cos(rad), 56 * math.sin(rad))]), fill=(240, 240, 248, 170), width=p(0.8))
+        d.line(pts([(0, 0), (56 * math.cos(rad), 56 * math.sin(rad))]), fill=(240, 240, 248), width=p(0.8))
     for rr in (16, 30, 44):
-        d.arc(box(0, 0, rr, rr), 0, 90, fill=(240, 240, 248, 170), width=p(0.8))
+        d.arc(box(0, 0, rr, rr), 0, 90, fill=(240, 240, 248), width=p(0.8))
     cloud(d, 150, 54, 1.0, (130, 136, 150))
     rain(d, t, 124, 176, 64, 140)
     peaches(img, PX, PY + 3, t, expr='sad', mouth='frown', fur=(222, 196, 176), tail_speed=0.3)
 
 
+def anger_mark(d, x, y, size, color=(226, 52, 60)):
+    """The comic "vein pop" mark: four little curved corners."""
+    s = size
+    for sx, sy in ((-1, -1), (1, -1), (-1, 1), (1, 1)):
+        d.arc(box(x + sx * s * 0.75, y + sy * s * 0.75, s * 0.7, s * 0.7), *{(-1, -1): (0, 90), (1, -1): (90, 180), (-1, 1): (270, 360), (1, 1): (180, 270)}[(sx, sy)], fill=color, width=p(2.4))
+
+
 def s_angry(img, t):
-    d = stage(img, (255, 220, 214), (246, 176, 168), floor=(236, 160, 152))
+    d = stage(img, (255, 214, 206), floor=(236, 160, 152))
     shake = wave(t, 6) * 2
     r = peaches(img, PX + shake, PY, t, expr='angry', mouth='open', tail_speed=4)
     d = ImageDraw.Draw(img, 'RGBA')
+    pulse = 1 + 0.18 * max(0, wave(t, 2))
+    anger_mark(d, r.hx + 24, r.hy - 34, 8 * pulse)
     for i, side in enumerate((-1, 1)):
         u = (t * 2 + i * 0.5) % 1.0
-        x = r.hx - 8 + side * 18 + side * 10 * u
-        y = r.hy - 34 - 26 * u
-        a = int(220 * (1 - u))
-        d.ellipse(box(x, y, 6 + 6 * u, 5 + 4 * u), fill=(255, 255, 255, a))
+        size = (5 + 7 * u) * min(1, (1 - u) * 2.5)
+        if size > 1:
+            cloud(d, r.hx - 14 + side * 16 + side * 8 * u, r.hy - 40 - 24 * u, size / 14, (255, 255, 255))
 
 
 def s_fancy(img, t):
@@ -427,29 +445,34 @@ def s_fancy(img, t):
     d.arc(box(278, 190, 7, 7), 270, 90, fill=LINE, width=p(1.6))
     for i in range(2):
         u = (t + i / 2) % 1.0
-        d.arc(box(258 + i * 8, 166 - 16 * u, 4, 7), 100, 260, fill=(150, 160, 170, int(200 * (1 - u))), width=p(1.4))
+        h = 7 * min(1, (1 - u) * 2.5)
+        if h > 1:
+            d.arc(box(258 + i * 8, 166 - 16 * u, 4, h), 100, 260, fill=(160, 172, 182), width=p(1.6))
     for i, (sx, sy) in enumerate([(56, 66), (250, 70)]):
         sparkle(d, sx, sy, 5, t, i * 0.5)
 
 
 def s_sneaky(img, t):
-    d = stage(img, (54, 60, 96), (32, 36, 66), floor=(40, 44, 76))
-    # spotlight sweeping past
-    sweep = 60 + 200 * ((t * 1.0) % 1.0)
-    glow(img, sweep, 200, 40, 14, (255, 250, 210), 70)
-    tiptoe = wave(t, 2) * 2
-    r = peaches(img, PX + 20 * ((t % 1.0) - 0.5), PY + tiptoe, t, expr='shifty', mouth='none', paws='up')
+    d = stage(img, (44, 50, 86), floor=(34, 38, 68))
+    # lamp post with a soft cone of light she is carefully avoiding
+    d.rectangle([p(268), p(70), p(274), p(214)], fill=(70, 74, 100), outline=LINE, width=p(1))
+    outlined_poly(d, [(256, 62), (286, 62), (280, 74), (262, 74)], (90, 94, 124), w=1.2)
+    cone = Image.new('RGBA', img.size, (0, 0, 0, 0))
+    cd = ImageDraw.Draw(cone)
+    cd.polygon(pts([(262, 74), (280, 74), (308, 214), (234, 214)]), fill=(255, 244, 190, 46))
+    cd.ellipse(box(271, 213, 38, 4), fill=(255, 244, 190, 80))
+    img.alpha_composite(cone.filter(ImageFilter.GaussianBlur(p(1.5))))
+    d = ImageDraw.Draw(img, 'RGBA')
+    tiptoe = -abs(wave(t, 2)) * 3
+    r = peaches(img, PX - 14 + 12 * ((t % 1.0) - 0.5), PY + tiptoe, t, expr='shifty', paws='up')
     d = ImageDraw.Draw(img, 'RGBA')
     sunglasses(d, r.eye[0] + 1, r.eye[1])
-    for i in range(3):
-        d.ellipse(box(r.cx - 70 - i * 18, 214, 4, 1.6), fill=(255, 255, 255, 60))
 
 
 def s_queen(img, t):
     d = stage(img, (238, 226, 252), (214, 190, 246), floor=(196, 168, 232))
     # velvet cushion
     outlined_ellipse(d, PX + 6, 212, 70, 10, (150, 40, 90), w=1.6)
-    cape(d, PX, PY - 4, t)
     r = peaches(img, PX, PY - 4, t, expr='happy', mouth='smile')
     d = ImageDraw.Draw(img, 'RGBA')
     crown(d, r.hat[0] + 2, r.hat[1] + 2, t)
@@ -470,15 +493,16 @@ def s_feed(img, t):
 def s_water(img, t):
     d = stage(img, (222, 244, 255), (186, 228, 250), floor=(164, 214, 240))
     # water bottle clipped to the "cage"
-    d.rounded_rectangle([p(212), p(54), p(244), p(128)], radius=p(8), fill=(190, 230, 255, 200), outline=LINE, width=p(1.6))
+    d.rounded_rectangle([p(212), p(54), p(244), p(128)], radius=p(8), fill=(190, 230, 255), outline=LINE, width=p(1.6))
     level = 92 + 12 * (t % 1.0)
-    d.rectangle([p(214), p(level), p(242), p(126)], fill=(110, 190, 250, 220))
+    d.rectangle([p(214), p(level), p(242), p(126)], fill=(110, 190, 250))
     d.rectangle([p(224), p(128), p(232), p(146)], fill=(170, 170, 180), outline=LINE, width=p(1.2))
     bubbles(d, t, (216, 96, 240, 124), count=5)
     r = peaches(img, PX + 40, PY + 6, t, expr='closed', mouth='open', tail_speed=1)
     d = ImageDraw.Draw(img, 'RGBA')
     u = (t * 3) % 1.0
-    d.ellipse(box(228, 150 + 10 * u, 2.4, 3.2), fill=(110, 190, 250, int(255 * (1 - u))))
+    if u < 0.7:
+        d.ellipse(box(228, 150 + 10 * u, 2.4, 3.2), fill=(110, 190, 250))
 
 
 def s_play(img, t):
@@ -495,13 +519,16 @@ def s_play(img, t):
 
 
 def s_sleep(img, t):
-    d = stage(img, (54, 64, 120), (30, 36, 80), floor=(46, 52, 98))
+    d = stage(img, (44, 54, 104), floor=(34, 40, 82))
     d.ellipse(box(272, 52, 20, 20), fill=(255, 244, 200))
-    d.ellipse(box(282, 46, 18, 18), fill=lerp((54, 64, 120), (30, 36, 80), 46 / DH))
+    d.ellipse(box(282, 46, 18, 18), fill=(44, 54, 104))
     for i, (sx, sy) in enumerate([(40, 40), (110, 26), (200, 50), (150, 80), (60, 100)]):
         sparkle(d, sx, sy, 3, t, i * 0.2, color=(255, 255, 230))
-    # little bed
-    outlined_ellipse(d, PX + 8, 206, 74, 14, (120, 160, 240), w=1.6)
+    # little bed: a round cushion with a raised rim
+    outlined_ellipse(d, PX + 8, 208, 78, 16, (96, 128, 214), w=1.8)
+    d.ellipse(box(PX + 8, 205, 66, 9), fill=(140, 170, 240))
+    for k in range(-3, 4):
+        d.ellipse(box(PX + 8 + k * 18, 219, 1.4, 1.4), fill=(70, 96, 170))
     breathe = wave(t) * 1.5
     r = peaches(img, PX, PY + 6 + breathe, t, expr='closed', mouth='none', tail_speed=0.3, blink=False)
     d = ImageDraw.Draw(img, 'RGBA')
@@ -536,7 +563,7 @@ def s_turd(img, t):
     px_, py_ = 252, 204
     for r_, dy in [(14, 0), (10.5, -9), (6.5, -16)]:
         outlined_ellipse(d, px_, py_ + dy, r_, r_ * 0.62, (138, 92, 60), w=1.4)
-    d.ellipse(box(px_ - 3, py_ - 18, 1.6, 1.6), fill=(255, 255, 255, 180))
+    d.ellipse(box(px_ - 3, py_ - 18, 1.6, 1.6), fill=(255, 255, 255))
     for i in range(3):
         u = (t + i / 3) % 1.0
         sx = px_ - 12 + i * 12
@@ -544,10 +571,11 @@ def s_turd(img, t):
     # Peaches, looking away, innocent
     peaches(img, PX - 14, PY, t, expr='happy', mouth='smile', look=-1)
     d = ImageDraw.Draw(img, 'RGBA')
-    for i, (nx, ny) in enumerate([(102, 92), (114, 80)]):
+    for i, (nx, ny) in enumerate([(100, 96), (118, 82)]):
         u = (t + i * 0.5) % 1.0
-        d.ellipse(box(nx + 6 * i, ny - 8 * u - i * 4, 3, 3), fill=(110, 80, 70, int(255 * (1 - u))))
-        d.line(pts([(nx + 3 + 6 * i, ny - 8 * u - i * 4), (nx + 3 + 6 * i, ny - 12 - 8 * u - i * 4)]), fill=(110, 80, 70, int(255 * (1 - u))), width=p(1.2))
+        size = 15 * min(1, (1 - u) * 3)
+        if size > 2:
+            glyph(d, nx + 6 * u, ny - 12 * u, '♪', size, (120, 86, 74))
 
 
 def wall(d, top=(232, 220, 200), mortar=(214, 198, 172)):
@@ -598,7 +626,7 @@ def s_gift(img, t):
     gift_box(d, r.held[0] + 6, r.held[1] - 4, 15, 12, (120, 190, 255), (255, 226, 90), t, lid_lift=max(0, wave(t)) * 4)
     for i in range(3):
         u = (t + i / 3) % 1.0
-        heart(d, 236 + i * 16, 120 - 60 * u, 5, alpha=int(255 * (1 - u)))
+        heart(d, 236 + i * 16, 120 - 60 * u, 5.5 * min(1, (1 - u) * 3))
 
 
 def s_shred(img, t):
@@ -612,18 +640,22 @@ def s_shred(img, t):
     d.rectangle([p(232), p(64), p(290), p(70)], fill=(180, 186, 196), outline=LINE, width=p(1.2))
     outlined_ellipse(d, 262, 92, 18, 18, WHITE, w=1.6)
     d.ellipse(box(262, 92, 6, 6), fill=(200, 170, 140))
-    trail = [(250, 106), (242, 140 + wave(t) * 3), (236, 176), (222, 206), (200, 212)]
-    d.line(pts(trail), fill=LINE, width=p(13))
-    d.line(pts(trail), fill=WHITE, width=p(10.5))
+    sway = wave(t) * 3
+    trail = []
+    for i in range(30):
+        u = i / 29
+        trail.append((252 - 30 * u - 22 * u * u + sway * math.sin(u * math.pi), 106 + 104 * u))
+    d.line(pts(trail), fill=LINE, width=p(12), joint='curve')
+    d.line(pts(trail), fill=WHITE, width=p(9.5), joint='curve')
     # confetti of shredded bits
     def bit(dd, x, y, i):
         if x < 40 or x > 300:
             return
-        dd.rectangle(box(x, y, 3.2, 2), fill=(255, 255, 255, 230), outline=(200, 210, 220), width=1)
+        dd.rectangle(box(x, y, 3.2, 2), fill=(255, 255, 255), outline=(200, 210, 220), width=1)
     falling(d, t, 22, bit)
     peaches(img, PX - 6, PY, t, expr='happy', mouth='open', paws='up', tail_speed=3)
     d = ImageDraw.Draw(img, 'RGBA')
-    d.rectangle(box(PX + 60, PY - 6, 7, 5), fill=WHITE, outline=(200, 210, 220))
+    outlined_poly(d, [(PX + 52, PY - 12), (PX + 66, PY - 14), (PX + 68, PY - 6), (PX + 64, PY - 2), (PX + 66, PY + 2), (PX + 54, PY + 4), (PX + 52, PY - 4)], WHITE, w=1.1)
 
 
 def s_walls(img, t):
@@ -651,8 +683,8 @@ def s_walls(img, t):
     d.arc(box(hx + 26, hy + 14, 3, 2.2), 10, 170, fill=INK, width=p(1.3))
     # "squeak" lines
     for i in range(3):
-        a = int(255 * (0.5 + 0.5 * wave(t, 2, i * 0.2)))
-        d.line(pts([(214, 80 + i * 14), (230, 74 + i * 16)]), fill=(140, 100, 80, a), width=p(2))
+        reach = 12 + 6 * (0.5 + 0.5 * wave(t, 2, i * 0.2))
+        d.line(pts([(214, 82 + i * 14), (214 + reach, 78 + i * 15)]), fill=(140, 100, 80), width=p(2))
 
 
 def s_ruler(img, t):
@@ -664,7 +696,6 @@ def s_ruler(img, t):
     # throne
     d.rounded_rectangle([p(PX - 46), p(118), p(PX + 54), p(214)], radius=p(10), fill=(170, 110, 50), outline=LINE, width=p(1.8))
     d.rounded_rectangle([p(PX - 38), p(128), p(PX + 46), p(206)], radius=p(8), fill=(190, 40, 80), outline=LINE, width=p(1.4))
-    cape(d, PX, PY, t)
     r = peaches(img, PX, PY, t, expr='happy', mouth='smile', paws='up')
     d = ImageDraw.Draw(img, 'RGBA')
     crown(d, r.hat[0] + 2, r.hat[1] + 2, t, 0.85)
@@ -706,7 +737,7 @@ def s_bite(img, t):
 def night_stage(img, t, top=(40, 26, 70), bottom=(78, 44, 108), floor=(30, 22, 44)):
     d = stage(img, top, bottom, floor=floor)
     d.ellipse(box(266, 48, 24, 24), fill=(255, 244, 200))
-    d.ellipse(box(277, 42, 22, 22), fill=lerp(top, bottom, 42 / DH))
+    d.ellipse(box(277, 42, 22, 22), fill=top)
     for i, (sx, sy) in enumerate([(30, 30), (90, 18), (150, 40), (205, 22), (120, 70), (40, 90)]):
         sparkle(d, sx, sy, 2.4, t, i * 0.2, color=(255, 255, 230))
     return d
@@ -756,13 +787,13 @@ def s_ghost(img, t):
     sheet = [(cx + 52 * math.cos(math.pi + math.pi * i / 39), cy - 8 + 56 * math.sin(math.pi + math.pi * i / 39)) for i in range(40)]
     for i in range(9):
         sheet.append((cx + 52 - i * 13, cy + 46 + (6 if i % 2 else -2) + wave(t, 1, i * 0.15) * 3))
-    d.polygon(pts(sheet), fill=(246, 246, 255, 240))
+    d.polygon(pts(sheet), fill=(246, 246, 255))
     d.line(pts(sheet + [sheet[0]]), fill=LINE, width=p(2), joint='curve')
     d.ellipse(box(cx - 14, cy - 18, 7, 10), fill=INK)
     d.ellipse(box(cx + 14, cy - 18, 7, 10), fill=INK)
     d.ellipse(box(cx, cy + 2, 7.5, 6), fill=INK)
-    d.ellipse(box(cx - 21, cy - 2, 6, 3.5), fill=(255, 196, 206, 160))
-    d.ellipse(box(cx + 21, cy - 2, 6, 3.5), fill=(255, 196, 206, 160))
+    d.ellipse(box(cx - 21, cy - 2, 6, 3.5), fill=(255, 196, 206))
+    d.ellipse(box(cx + 21, cy - 2, 6, 3.5), fill=(255, 196, 206))
 
 
 def winter_stage(img, t):
@@ -807,9 +838,19 @@ def s_frosty(img, t):
     r = peaches(img, PX - 8, PY + bob(t, 3), t, expr='open', mouth='smile')
     d = ImageDraw.Draw(img, 'RGBA')
     scarf(d, r.cx, r.cy, t)
-    # earmuffs
-    d.arc(box(r.hx - 4, r.hy - 12, 24, 22), 190, 350, fill=(90, 90, 110), width=p(3.5))
-    outlined_ellipse(d, r.hx - 7, r.hy - 26, 11, 11, (120, 200, 255), w=1.5)
+    # earmuffs: band over the top of her head, a fluffy muff over each ear
+    d.arc(box(r.hx - 4, r.hy - 14, 24, 20), 200, 300, fill=LINE, width=p(5))
+    d.arc(box(r.hx - 4, r.hy - 14, 24, 20), 200, 300, fill=(110, 120, 200), width=p(3))
+    # one fluffy muff over the ear we can see (two side by side read as goggles)
+    ex, ey = r.hx - 7, r.hy - 26
+    for k in range(8):
+        a = k * math.pi / 4
+        d.ellipse(box(ex + math.cos(a) * 7, ey + math.sin(a) * 7, 5.5, 5.5), fill=LINE)
+    for k in range(8):
+        a = k * math.pi / 4
+        d.ellipse(box(ex + math.cos(a) * 7, ey + math.sin(a) * 7, 4.2, 4.2), fill=(236, 242, 255))
+    d.ellipse(box(ex, ey, 8, 8), fill=(236, 242, 255))
+    d.ellipse(box(ex - 2, ey - 2, 3, 3), fill=WHITE)
     snow(d, t, 44)
 
 
@@ -851,10 +892,23 @@ def heart_headband(d, r, t):
         heart(d, hx + dx, hy - 16 + dy + bounce, 5.5, color=(240, 70, 120))
 
 
+def wing(d, x, y, t, scale=1.0, shade=False):
+    """A cartoon wing: a fan of long rounded feathers growing up-and-back from a shoulder at (x, y)."""
+    flap = wave(t, 3) * 9
+    fill = (234, 236, 250) if shade else WHITE
+    feathers = [(-168, 30), (-146, 34), (-124, 30), (-104, 24)]  # (angle°, length)
+    for angle, length in feathers:
+        a = math.radians(angle + flap)
+        length *= scale
+        cx_, cy_ = x + math.cos(a) * length * 0.55, y + math.sin(a) * length * 0.55
+        outlined_poly(d, rot_ellipse(cx_, cy_, length * 0.55, 6.5 * scale, angle + flap), fill, w=1.4)
+    outlined_ellipse(d, x, y, 9 * scale, 8 * scale, fill, w=1.4)
+
+
 def wings(d, cx, cy, t):
-    flap = wave(t, 3) * 6
-    for k, (dx, dy) in enumerate([(-26, -22), (-40, -10)]):
-        outlined_ellipse(d, cx + dx - 6, cy + dy - flap * (1 - k * 0.4), 16 - k * 3, 10 - k * 2, WHITE, w=1.4)
+    """Two wings rising from her upper back, clear of the body outline."""
+    wing(d, cx - 20, cy - 32, t + 0.05, 1.45, shade=True)
+    wing(d, cx - 30, cy - 24, t, 1.65)
 
 
 def bow_and_arrow(d, x, y):
@@ -875,7 +929,7 @@ def s_valentines(img, t):
     d = stage(img, (255, 228, 238), (255, 196, 216), floor=(246, 176, 200))
     for i in range(6):
         u = (t + i / 6) % 1.0
-        heart(d, 30 + i * 52 + wave(t, 1, i * 0.2) * 5, 200 - 190 * u, 4 + (i % 3) * 1.5, color=(255, 120, 160), alpha=int(200 * (1 - u)))
+        heart(d, 30 + i * 52 + wave(t, 1, i * 0.2) * 5, 200 - 190 * u, (4.5 + (i % 3) * 1.5) * min(1, (1 - u) * 3), color=(255, 140, 175))
     choc_box(d, 258, 186)
     r = peaches(img, PX - 8, PY + bob(t, 4), t, expr='happy', mouth='smile')
     d = ImageDraw.Draw(img, 'RGBA')
@@ -889,7 +943,6 @@ def s_cupid(img, t):
     wings(d, cx, cy, t)
     r = peaches(img, cx, cy, t, expr='open', mouth='smile', paws='up')
     d = ImageDraw.Draw(img, 'RGBA')
-    wings(d, cx + 4, cy + 4, t + 0.1)
     bow_and_arrow(d, r.held[0] + 14, r.held[1] - 4)
     for i, (sx, sy) in enumerate([(240, 60), (276, 110), (50, 70)]):
         sparkle(d, sx, sy, 6, t, i * 0.3, color=(255, 190, 220))
@@ -916,13 +969,28 @@ def egg(d, x, y, color, stripe, scale=1.0):
         d.ellipse(box(x + dx * scale, y - 5 * scale, 1.3 * scale, 1.3 * scale), fill=stripe)
 
 
+def rot_ellipse(cx, cy, rx, ry, angle_deg, n=28):
+    a = math.radians(angle_deg)
+    return [(cx + rx * math.cos(u) * math.cos(a) - ry * math.sin(u) * math.sin(a), cy + rx * math.cos(u) * math.sin(a) + ry * math.sin(u) * math.cos(a)) for u in [2 * math.pi * i / n for i in range(n)]]
+
+
 def bunny_ears(d, r, t):
     hx, hy = r.hat
-    flop = wave(t) * 3
-    for dx, tilt in [(-12, -6), (8, 4 + flop)]:
-        outlined_poly(d, [(hx + dx - 6, hy + 4), (hx + dx + 6, hy + 4), (hx + dx + 6 + tilt, hy - 34), (hx + dx - 2 + tilt, hy - 40)], WHITE, w=1.4)
-        d.polygon(pts([(hx + dx - 2, hy + 1), (hx + dx + 3, hy + 1), (hx + dx + 3 + tilt * 0.9, hy - 28), (hx + dx + tilt * 0.9, hy - 32)]), fill=(255, 196, 210))
-    d.rounded_rectangle([p(hx - 20), p(hy + 1), p(hx + 16), p(hy + 7)], radius=p(3), fill=(255, 160, 190), outline=LINE, width=p(1.2))
+    flop = wave(t) * 4
+    for dx, tilt in [(-10, -14), (10, 10 + flop)]:
+        outlined_poly(d, rot_ellipse(hx + dx, hy - 20, 8, 22, tilt - 90 + 90), WHITE, w=1.5)
+        d.polygon(pts(rot_ellipse(hx + dx, hy - 18, 4.2, 15, tilt)), fill=(255, 190, 206))
+    d.rounded_rectangle([p(hx - 20), p(hy + 1), p(hx + 18), p(hy + 7)], radius=p(3), fill=(255, 160, 190), outline=LINE, width=p(1.2))
+
+
+def butterfly(d, x, y, t, color):
+    open_ = 0.35 + 0.65 * abs(wave(t, 4))
+    for side in (-1, 1):
+        d.ellipse(box(x + side * 6 * open_, y - 3, 6.5 * open_ + 1, 6), fill=color, outline=LINE, width=p(1))
+        d.ellipse(box(x + side * 4.5 * open_, y + 5, 4.5 * open_ + 0.8, 4), fill=color, outline=LINE, width=p(1))
+    d.line(pts([(x, y - 6), (x, y + 8)]), fill=LINE, width=p(1.8))
+    d.line(pts([(x, y - 6), (x - 3, y - 11)]), fill=LINE, width=p(0.9))
+    d.line(pts([(x, y - 6), (x + 3, y - 11)]), fill=LINE, width=p(0.9))
 
 
 def s_spring(img, t):
@@ -935,12 +1003,10 @@ def s_spring(img, t):
     r = peaches(img, PX - 10, PY + bob(t, 4), t, expr='happy', mouth='smile')
     d = ImageDraw.Draw(img, 'RGBA')
     flower_crown(d, r, t)
-    for i in range(3):
-        u = (t + i / 3) % 1.0
-        x = 200 + 60 * u
-        y = 70 + wave(t, 2, i * 0.3) * 10 + i * 20
-        d.ellipse(box(x - 4, y, 4, 3), fill=(255, 196, 90))
-        d.ellipse(box(x + 4, y, 4, 3), fill=(255, 196, 90))
+    for i, col in enumerate([(255, 180, 70), (190, 150, 255)]):
+        x = 210 + 46 * i + wave(t, 1, i * 0.4) * 14
+        y = 72 + 20 * i + wave(t, 2, i * 0.3) * 8
+        butterfly(d, x, y, t + i * 0.3, col)
 
 
 def s_bunny(img, t):
@@ -998,9 +1064,15 @@ def s_summer(img, t):
     d = beach_stage(img, t)
     # umbrella
     d.line(pts([(268, 214), (262, 132)]), fill=(150, 110, 70), width=p(2.4))
-    d.chord(box(262, 136, 44, 26), 180, 360, fill=(255, 120, 130), outline=LINE, width=p(1.6))
-    for k in (-22, 0, 22):
-        d.chord(box(262 + k, 136, 9, 26), 180, 360, fill=WHITE)
+    wedges = 6
+    for k in range(wedges):
+        a0 = math.pi + math.pi * k / wedges
+        a1 = math.pi + math.pi * (k + 1) / wedges
+        arc_pts = [(262 + 46 * math.cos(a0 + (a1 - a0) * j / 6), 136 + 28 * math.sin(a0 + (a1 - a0) * j / 6)) for j in range(7)]
+        d.polygon(pts([(262, 136)] + arc_pts), fill=(255, 112, 124) if k % 2 == 0 else WHITE)
+    rim = [(262 + 46 * math.cos(math.pi + math.pi * j / 36), 136 + 28 * math.sin(math.pi + math.pi * j / 36)) for j in range(37)]
+    d.line(pts(rim + [(262 - 46, 136)]), fill=LINE, width=p(1.6))
+    d.line(pts([(216, 136), (308, 136)]), fill=LINE, width=p(1.6))
     r = peaches(img, PX - 10, PY + bob(t, 3), t, expr='happy', mouth='smile', paws='up')
     d = ImageDraw.Draw(img, 'RGBA')
     sun_hat(d, r, t)
