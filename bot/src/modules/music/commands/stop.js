@@ -1,5 +1,6 @@
 import { SlashCommandBuilder } from 'discord.js';
 import { requirePlayerInVoice } from '../guards.js';
+import { refreshPanel } from '../ui/panel.js';
 import { successEmbed } from '../../../core/embeds.js';
 import { flavor, FLAVOR } from '../../../utils/ratpack.js';
 
@@ -15,5 +16,6 @@ export const stop = {
       embeds: [successEmbed({ description: `⏹ Stopped. ${flavor(FLAVOR.stopped) || "The hoard's queue is empty."}` })],
       ephemeral: true,
     });
+    await refreshPanel(interaction.client, player);
   },
 };

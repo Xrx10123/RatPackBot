@@ -1,5 +1,6 @@
 import { SlashCommandBuilder } from 'discord.js';
 import { requirePlayerInVoice } from '../guards.js';
+import { refreshPanel } from '../ui/panel.js';
 import { successEmbed } from '../../../core/embeds.js';
 
 const LOOP_LABELS = { off: 'Off', track: 'Track', queue: 'Queue' };
@@ -27,5 +28,6 @@ export const loop = {
     const mode = interaction.options.getString('mode', true);
     await player.setRepeatMode(mode);
     await interaction.reply({ embeds: [successEmbed({ description: `🔁 Loop set to **${LOOP_LABELS[mode]}**.` })], ephemeral: true });
+    await refreshPanel(interaction.client, player);
   },
 };

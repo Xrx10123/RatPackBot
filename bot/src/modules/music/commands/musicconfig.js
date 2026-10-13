@@ -1,6 +1,7 @@
 import { SlashCommandBuilder, PermissionFlagsBits } from 'discord.js';
 import { successEmbed, infoEmbed } from '../../../core/embeds.js';
 import { updateGuildConfig, getGuildConfig } from '../../../core/guildConfig.js';
+import { audit } from '../../../core/guildLog.js';
 
 export const musicconfig = {
   data: new SlashCommandBuilder()
@@ -54,6 +55,7 @@ const SUBCOMMAND_HANDLERS = {
   async djrole(interaction) {
     const role = interaction.options.getRole('role');
     updateGuildConfig(interaction.guildId, { djRoleId: role?.id ?? null });
+    audit(interaction, role ? `set the DJ role to <@&${role.id}>.` : 'cleared the DJ role.');
     await interaction.reply({
       embeds: [successEmbed({ description: role ? `🎧 DJ role set to <@&${role.id}>.` : '🎧 DJ role cleared.' })],
       ephemeral: true,
@@ -63,12 +65,14 @@ const SUBCOMMAND_HANDLERS = {
   async voteskip(interaction) {
     const percent = interaction.options.getInteger('percent', true);
     updateGuildConfig(interaction.guildId, { voteSkipThreshold: percent });
+    audit(interaction, `set the vote-skip threshold to **${percent}%**.`);
     await interaction.reply({ embeds: [successEmbed({ description: `🗳 Vote-skip threshold set to **${percent}%**.` })], ephemeral: true });
   },
 
   async '247'(interaction) {
     const enabled = interaction.options.getBoolean('enabled', true);
     updateGuildConfig(interaction.guildId, { twentyFourSeven: enabled ? 1 : 0 });
+    audit(interaction, `turned 24/7 mode **${enabled ? 'on' : 'off'}**.`);
     await interaction.reply({ embeds: [successEmbed({ description: `♾ 24/7 mode is now **${enabled ? 'on' : 'off'}**.` })], ephemeral: true });
   },
 };

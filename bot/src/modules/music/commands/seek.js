@@ -1,5 +1,6 @@
 import { SlashCommandBuilder } from 'discord.js';
 import { requirePlayerInVoice } from '../guards.js';
+import { refreshPanel } from '../ui/panel.js';
 import { successEmbed, errorEmbed, warnEmbed } from '../../../core/embeds.js';
 import { parseDuration, formatDuration } from '../../../utils/format.js';
 
@@ -35,5 +36,6 @@ export const seek = {
 
     await player.seek(ms);
     await interaction.reply({ embeds: [successEmbed({ description: `⏩ Jumped to **${formatDuration(ms)}**.` })], ephemeral: true });
+    await refreshPanel(interaction.client, player);
   },
 };

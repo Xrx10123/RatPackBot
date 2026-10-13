@@ -1,12 +1,14 @@
 import { SlashCommandBuilder, PermissionFlagsBits, ChannelType } from 'discord.js';
 import { successEmbed, errorEmbed, infoEmbed, warnEmbed } from '../../../core/embeds.js';
 import { MOOD_DISPLAY, pickLine } from '../variants.js';
-import { getCurrentState, renamePeaches, getRenameCooldownRemaining, resetToContent } from '../state.js';
+import { getCurrentState, renamePeaches, getRenameCooldownRemaining, resetToContent, syncLevel } from '../state.js';
+import { levelProgress, titleForLevel, statBar, QUIET_START_HOUR, QUIET_END_HOUR } from '../progression.js';
 import { getUserStats, getLeaderboard } from '../stats.js';
-import { getSpawnChannelIds, setSpawnChannelIds, updatePeachesConfig, ensurePeachesConfig } from '../config.js';
+import { getSpawnChannelIds, setSpawnChannelIds, updatePeachesConfig, ensurePeachesConfig, isSleepingNow } from '../config.js';
 import { resolveAllPending } from '../mischiefStore.js';
 import { spawnNow } from '../spawner.js';
 import { getMediaForMoment, applyMedia } from '../media.js';
+import { audit } from '../../../core/guildLog.js';
 
 const LEADERBOARD_CATEGORIES = [
   { name: 'Cheese Fed', value: 'cheeseFed' },
@@ -68,7 +70,8 @@ export const pet = {
         .addStringOption((o) =>
           o.setName('mischief_frequency').setDescription('How often mischief happens').addChoices({ name: 'Low', value: 'low' }, { name: 'Normal', value: 'normal' }, { name: 'High', value: 'high' }),
         )
-        .addBooleanOption((o) => o.setName('escalation_enabled').setDescription('Allow the neglect escalation ladder')),
+        .addBooleanOption((o) => o.setName('escalation_enabled').setDescription('Allow the neglect escalation ladder'))
+        .addBooleanOption((o) => o.setName('quiet_hours').setDescription(`No spawns/mischief ${QUIET_START_HOUR}:00–${QUIET_END_HOUR}:00 server time (set in /setup)`)),
     )
     .addSubcommand((sub) =>
       sub
@@ -112,12 +115,31 @@ export const pet = {
 const SUBCOMMAND_HANDLERS = {
   async status(interaction) {
     const state = getCurrentState(interaction.guildId);
+    const { xp } = syncLevel(interaction.guildId);
+    const { level, into, needed } = levelProgress(xp);
     const mood = MOOD_DISPLAY[state.mood] ?? MOOD_DISPLAY.content;
+    const meter = (emoji, label, value) => `${emoji} \`${statBar(value)}\` ${label} ${Math.round(value)}`;
+
+    const lines = [
+      `${state.name} ${pickLine(mood.flavor)}`,
+      '',
+      `⭐ Level **${level}** — *${titleForLevel(level)}*`,
+      needed > 0 ? `\`${statBar((into / needed) * 100)}\` ${into}/${needed} XP to level ${level + 1}` : '👑 Max level. There is nothing left to prove.',
+      '',
+      meter('🧀', 'Hunger', state.hunger),
+      meter('💧', 'Thirst', state.thirst),
+      meter('🎾', 'Happiness', state.happiness),
+      meter('😴', 'Energy', state.energy),
+      meter('🧼', 'Cleanliness', state.cleanliness),
+      '',
+      `Mood: **${mood.label}**${isSleepingNow(interaction.guildId) ? ' · 💤 asleep for the night' : ''}`,
+    ];
+
     const payload = {
       embeds: [
         successEmbed({
           title: `${mood.emoji} ${state.name}`,
-          description: `${state.name} ${pickLine(mood.flavor)}\n\nLevel **${state.level}** · Mood: **${mood.label}**`,
+          description: lines.join('\n'),
         }),
       ],
     };
@@ -215,11 +237,13 @@ const SUBCOMMAND_HANDLERS = {
         return;
       }
       setSpawnChannelIds(interaction.guildId, [...current, channel.id]);
+      audit(interaction, `let Peaches appear in <#${channel.id}>.`);
       await interaction.reply({ embeds: [successEmbed({ description: `🐀 Peaches may now appear in <#${channel.id}>.` })], ephemeral: true });
       return;
     }
 
     setSpawnChannelIds(interaction.guildId, current.filter((id) => id !== channel.id));
+    audit(interaction, `removed <#${channel.id}> from Peaches' spawn channels.`);
     await interaction.reply({ embeds: [successEmbed({ description: `🐀 Removed <#${channel.id}> from spawn channels.` })], ephemeral: true });
   },
 
@@ -229,19 +253,26 @@ const SUBCOMMAND_HANDLERS = {
     const patch = {};
     const frequency = interaction.options.getString('mischief_frequency');
     const escalation = interaction.options.getBoolean('escalation_enabled');
+    const quietHours = interaction.options.getBoolean('quiet_hours');
     if (frequency) patch.mischiefFrequency = frequency;
     if (escalation !== null) patch.escalationEnabled = escalation ? 1 : 0;
+    if (quietHours !== null) patch.quietHours = quietHours ? 1 : 0;
 
     if (Object.keys(patch).length === 0) {
       const config = ensurePeachesConfig(interaction.guildId);
       await interaction.reply({
-        embeds: [infoEmbed({ description: `🐀 Mischief frequency: **${config.mischiefFrequency}** · Escalation: **${config.escalationEnabled ? 'on' : 'off'}**` })],
+        embeds: [
+          infoEmbed({
+            description: `🐀 Mischief frequency: **${config.mischiefFrequency}** · Escalation: **${config.escalationEnabled ? 'on' : 'off'}** · Quiet hours: **${config.quietHours === 0 ? 'off' : 'on'}**`,
+          }),
+        ],
         ephemeral: true,
       });
       return;
     }
 
     updatePeachesConfig(interaction.guildId, patch);
+    audit(interaction, `changed Peaches settings: ${Object.entries(patch).map(([k, v]) => `${k}=${v}`).join(', ')}.`);
     await interaction.reply({ embeds: [successEmbed({ description: '🐀 Updated.' })], ephemeral: true });
   },
 
@@ -251,6 +282,7 @@ const SUBCOMMAND_HANDLERS = {
     const toggle = interaction.options.getString('toggle', true);
     const enabled = interaction.options.getBoolean('enabled', true);
     updatePeachesConfig(interaction.guildId, { [toggle]: enabled ? 1 : 0 });
+    audit(interaction, `turned Peaches' **${toggle}** ${enabled ? 'on' : 'off'}.`);
     await interaction.reply({ embeds: [successEmbed({ description: `🐀 Set to **${enabled ? 'on' : 'off'}**.` })], ephemeral: true });
   },
 
@@ -270,6 +302,7 @@ const SUBCOMMAND_HANDLERS = {
 
     const oldState = getCurrentState(interaction.guildId);
     renamePeaches(interaction.guildId, name);
+    audit(interaction, `renamed ${oldState.name} to **${name}**.`);
     await interaction.reply({
       embeds: [successEmbed({ description: `🐀 ${oldState.name} has been renamed to **${name}** by ${interaction.user}. The rats have taken note.` })],
     });

@@ -3,6 +3,7 @@ import { eq, and, desc, sql } from 'drizzle-orm';
 import { db } from '../../db/index.js';
 import { peachesState, peachesInteractions, peachesSpawns } from '../../db/schema.js';
 import { incrementStat } from './stats.js';
+import { ACTION_XP, levelForXp } from './progression.js';
 
 const DECAY_PER_HOUR = { hunger: 3, thirst: 3, happiness: 2, energy: 1, cleanliness: 1.5 };
 const LOW_THRESHOLD = 30;
@@ -21,7 +22,7 @@ const ACTION_COOLDOWN_MS = {
   feed: 30 * 60 * 1000,
   water: 30 * 60 * 1000,
   play: 60 * 60 * 1000,
-  sleep: 0,
+  sleep: 20 * 60 * 1000, // was 0 — spammable, and it now earns XP
   clean: 2 * 60 * 60 * 1000,
 };
 
@@ -207,6 +208,34 @@ export function renamePeaches(guildId, newName) {
   ensureState(guildId);
   db.update(peachesState).set({ name: newName, renamedAt: Date.now() }).where(eq(peachesState.guildId, guildId)).run();
   return getRawState(guildId);
+}
+
+/** Total care XP the server has given her — every feed/water/play/sleep/clean ever recorded. */
+export function getCareXp(guildId) {
+  const weights = Object.entries(ACTION_XP)
+    .map(([action, xp]) => `WHEN '${action}' THEN ${Number(xp)}`)
+    .join(' ');
+  const row = db
+    .select({ xp: sql`COALESCE(SUM(CASE ${peachesInteractions.action} ${sql.raw(weights)} ELSE 0 END), 0)` })
+    .from(peachesInteractions)
+    .innerJoin(peachesSpawns, eq(peachesInteractions.spawnId, peachesSpawns.id))
+    .where(eq(peachesSpawns.guildId, guildId))
+    .get();
+  return Number(row?.xp ?? 0);
+}
+
+/**
+ * Recomputes her level from care XP and stores it. Returns the new level
+ * and whether it went up, so the caller can celebrate.
+ */
+export function syncLevel(guildId) {
+  const state = ensureState(guildId);
+  const xp = getCareXp(guildId);
+  const level = levelForXp(xp);
+  if (level !== state.level) {
+    db.update(peachesState).set({ level }).where(eq(peachesState.guildId, guildId)).run();
+  }
+  return { level, xp, leveledUp: level > (state.level ?? 1) };
 }
 
 export function bumpLastSpawnAt(guildId) {

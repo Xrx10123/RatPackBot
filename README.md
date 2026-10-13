@@ -6,11 +6,12 @@ Self-hosted, modular, multi-guild. Built with Node.js 22, discord.js v14, and La
 
 ## What it does
 
-- **Music** — `/play`, `/search`, queue management, playlists ("hoards"), audio effects, lyrics, and a live control panel posted right in the voice channel's chat.
+- **Music** — `/play`, `/search`, queue management (`/queue`, `/remove`, `/move`), playlists ("hoards"), audio effects, lyrics, and a live control panel posted right in the voice channel's chat (or your music channel, if the bot can't post there).
 - **Setup** — a guided `/setup` wizard that configures channels, timezone, and notification preferences, with one-click auto-creation of the channel category.
 - **Game stats & news** — `/stats`, `/steam`, and a Steam-appid-based news tracker (`/news`) that follows patch notes for whatever games your server cares about.
 - **Outage monitoring** — `/outage` and `/status` watch real services (Discord, Steam, Cloudflare, and anything else on Atlassian Statuspage) and ping the server when something goes down or recovers.
-- **Peaches** — a shared pet rat who wanders into channels, needs feeding/watering/playing with, and gets increasingly mischievous if the server neglects her.
+- **Peaches** — a shared pet rat who wanders into channels, needs feeding/watering/playing with, and gets increasingly mischievous if the server neglects her. She levels up as the server takes care of her (`/pet status` shows her stats and progress), and sleeps overnight in your server's timezone, so no 3 AM pings (`/pet config quiet_hours` to turn that off).
+- **Logs** — settings changes ("@someone set alert pings to @here") and anything that breaks get posted to the Logs channel you pick in `/setup`, so managers can see what changed and when.
 
 ## Prerequisites
 
@@ -52,6 +53,20 @@ docker compose up -d --build
 ```
 
 The SQLite database lives in `./data/ratpack.db` on the host and survives rebuilds/restarts.
+
+## Permissions inside Discord
+
+Anything that changes server-wide settings — the `/setup` panel and its buttons, `/musicconfig`, `/outage add/remove/channel`, `/news add/remove/filter/check`, and the admin `/pet` subcommands — requires the **Manage Server** permission. Everyone else can still play music, check `/status` and `/server`, follow their own outage pings with `/outage notify`, and look after Peaches.
+
+## Development
+
+```bash
+cd bot
+npm install
+npm test
+```
+
+Tests use Node's built-in test runner and a throwaway SQLite database per test file — no Discord token or Lavalink needed.
 
 ## Troubleshooting
 

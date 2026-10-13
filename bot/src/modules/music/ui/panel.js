@@ -214,6 +214,11 @@ export async function retirePanel(client, player, reason) {
     .catch(() => {});
 }
 
+/** Re-renders an existing panel in place after a slash command changes playback state. Never posts a new one. */
+export async function refreshPanel(client, player) {
+  await refreshPanelMessage(client, player).catch(() => null);
+}
+
 export async function teardownPanel(voiceChannelId) {
   deletePanelRow(voiceChannelId);
 }

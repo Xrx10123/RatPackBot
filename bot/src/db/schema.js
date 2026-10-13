@@ -163,4 +163,5 @@ export const peachesConfig = sqliteTable('peaches_config', {
   crossOutages: integer('cross_outages').default(1),
   crossHoards: integer('cross_hoards').default(1),
   spawnChannels: text('spawn_channels'), // comma-separated channel IDs
+  quietHours: integer('quiet_hours').default(1),
 });

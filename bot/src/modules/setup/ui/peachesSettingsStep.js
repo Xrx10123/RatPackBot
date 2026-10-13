@@ -19,6 +19,7 @@ export function buildPeachesSettingsPayload(guildId) {
     `Spawn channels: ${spawnChannels.length > 0 ? spawnChannels.map((id) => `<#${id}>`).join(', ') : '*none set — she has nowhere to appear yet*'}`,
     `Mischief: **${config?.mischiefEnabled ? 'on' : 'off'}** (frequency: **${config?.mischiefFrequency ?? 'normal'}**)`,
     `Escalation ladder: **${config?.escalationEnabled ? 'on' : 'off'}**`,
+    `Quiet hours (no overnight spawns): **${config?.quietHours === 0 ? 'off' : 'on'}**`,
     `Cross-module hooks — Music: **${config?.crossMusic ? 'on' : 'off'}** · News: **${config?.crossNews ? 'on' : 'off'}** · Outages: **${config?.crossOutages ? 'on' : 'off'}** · Hoards: **${config?.crossHoards ? 'on' : 'off'}**`,
     '',
     'Change these with `/pet channels`, `/pet config`, and `/pet mischief`.',

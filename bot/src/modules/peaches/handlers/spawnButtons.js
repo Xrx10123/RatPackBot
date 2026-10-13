@@ -1,6 +1,7 @@
 import { errorEmbed, successEmbed } from '../../../core/embeds.js';
 import { getSpawnById } from '../spawns.js';
-import { getActionCooldownRemaining, applyInteraction, getFirstInteractor } from '../state.js';
+import { getActionCooldownRemaining, applyInteraction, getFirstInteractor, syncLevel } from '../state.js';
+import { titleForLevel } from '../progression.js';
 import { VARIANTS } from '../variants.js';
 import { buildSpawnPayload } from '../ui/spawnEmbed.js';
 import { getMediaForMoment, applyMedia } from '../media.js';
@@ -39,6 +40,15 @@ function makeSpawnButtonHandler(action) {
 
     const updatedSpawnPayload = await buildSpawnPayload(state, spawn);
     await interaction.message.edit(updatedSpawnPayload).catch(() => {});
+
+    const { level, leveledUp } = syncLevel(interaction.guildId);
+    if (leveledUp) {
+      await interaction
+        .followUp({
+          embeds: [successEmbed({ description: `🎉 **${state.name}** reached **level ${level}** — she's now a *${titleForLevel(level)}*! ${interaction.user} delivered the final crumb.` })],
+        })
+        .catch(() => {});
+    }
   };
 }
 

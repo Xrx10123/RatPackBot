@@ -103,3 +103,17 @@ test('removeTrackFromHoard reports whether anything was removed', () => {
   assert.equal(removeTrackFromHoard(h.id, 999), false);
   assert.equal(removeTrackFromHoard(h.id, row.position), true);
 });
+
+import { buildQueuePositionChoices } from '../src/modules/music/ui/queueChoices.js';
+
+test('queue position autocomplete: numbers filter by prefix, text fuzzy-matches titles', () => {
+  const tracks = Array.from({ length: 30 }, (_, i) => track(`Song ${i + 1}`, i === 4 ? '' : 'Band'));
+  tracks[11] = track('Bohemian Rhapsody', 'Queen');
+  const choices = buildQueuePositionChoices(tracks, '');
+  assert.equal(choices.length, 25);
+  assert.equal(choices[0].value, 1);
+  assert.match(choices[4].name, /Unknown/);
+  assert.deepEqual(buildQueuePositionChoices(tracks, '1').map((c) => c.value), [1, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]);
+  assert.equal(buildQueuePositionChoices(tracks, 'bohem')[0].value, 12);
+  for (const c of buildQueuePositionChoices([track('x'.repeat(300), 'y')], '')) assert.ok(c.name.length <= 100);
+});

@@ -9,6 +9,7 @@ import { buildPeachesSettingsPayload } from './ui/peachesSettingsStep.js';
 import { buildMusicSettingsPayload } from './ui/musicSettingsStep.js';
 import { verifyGuildChannels, buildVerifyEmbed } from './verify.js';
 import { requireManager } from '../../core/permissions.js';
+import { audit } from '../../core/guildLog.js';
 
 function hub(interaction) {
   return buildHubPayload(getGuildConfig(interaction.guildId));
@@ -29,6 +30,7 @@ async function createCategoryAndReturnToHub(interaction) {
   }
 
   updateGuildConfig(interaction.guildId, fields);
+  audit(interaction, 'created the 🐀 Ratpack channel category.');
   await interaction.editReply(hub(interaction));
 }
 
@@ -86,11 +88,13 @@ export const setupButtons = managersOnly({
 
   async mention_here(interaction) {
     updateGuildConfig(interaction.guildId, { defaultMention: 'here', defaultRoleId: null });
+    audit(interaction, 'set alert pings to **@here**.');
     await interaction.update(hub(interaction));
   },
 
   async mention_none(interaction) {
     updateGuildConfig(interaction.guildId, { defaultMention: 'none', defaultRoleId: null });
+    audit(interaction, 'turned alert pings **off**.');
     await interaction.update(hub(interaction));
   },
 
@@ -118,16 +122,19 @@ export const setupSelects = managersOnly({
     const channel = interaction.values[0];
     const meta = CHANNEL_PURPOSES[purpose];
     updateGuildConfig(interaction.guildId, { [meta.field]: channel });
+    audit(interaction, `set the **${meta.label}** channel to <#${channel}>.`);
     await interaction.update(hub(interaction));
   },
 
   async tz_select(interaction) {
     updateGuildConfig(interaction.guildId, { timezone: interaction.values[0] });
+    audit(interaction, `set the timezone to **${interaction.values[0]}**.`);
     await interaction.update(hub(interaction));
   },
 
   async mention_roleselect(interaction) {
     updateGuildConfig(interaction.guildId, { defaultMention: 'role', defaultRoleId: interaction.values[0] });
+    audit(interaction, `set alert pings to <@&${interaction.values[0]}>.`);
     await interaction.update(hub(interaction));
   },
 });
@@ -140,6 +147,7 @@ export const setupModals = managersOnly({
       return;
     }
     updateGuildConfig(interaction.guildId, { timezone: tz });
+    audit(interaction, `set the timezone to **${tz}**.`);
     await interaction.update(hub(interaction));
   },
 });

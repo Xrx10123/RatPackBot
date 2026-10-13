@@ -8,6 +8,7 @@ import { buildStatusBoardPayload } from '../ui/board.js';
 import { listMonitors, getMonitorBySlug, addMonitor, removeMonitor, updateMonitorStatus, setUserNotify } from '../monitors.js';
 import { toStatus, normalizeStatusHost } from '../alerting.js';
 import { requireManager } from '../../../core/permissions.js';
+import { audit } from '../../../core/guildLog.js';
 
 const CURATED = [{ slug: 'steam', name: 'Steam' }, ...Object.entries(KNOWN_SERVICES).map(([slug, v]) => ({ slug, name: v.name }))];
 
@@ -113,6 +114,7 @@ const SUBCOMMAND_HANDLERS = {
     const curated = CURATED.find((s) => s.slug === value);
     if (curated) {
       addMonitor({ guildId: interaction.guildId, serviceSlug: curated.slug, serviceName: curated.name });
+      audit(interaction, `started monitoring **${curated.name}**.`);
       await interaction.editReply({ embeds: [successEmbed({ description: `🚨 Now monitoring **${curated.name}**.` })] });
       return;
     }
@@ -124,6 +126,7 @@ const SUBCOMMAND_HANDLERS = {
     }
 
     addMonitor({ guildId: interaction.guildId, serviceSlug: value, serviceName: validation.name });
+    audit(interaction, `started monitoring **${validation.name}** (\`${value}\`).`);
     await interaction.editReply({ embeds: [successEmbed({ description: `🚨 Now monitoring **${validation.name}**.` })] });
   },
 
@@ -136,6 +139,7 @@ const SUBCOMMAND_HANDLERS = {
       return;
     }
     removeMonitor(monitor.id);
+    audit(interaction, `stopped monitoring **${monitor.serviceName}**.`);
     await interaction.reply({ embeds: [successEmbed({ description: `🐀 Stopped monitoring **${monitor.serviceName}**.` })], ephemeral: true });
   },
 
@@ -178,6 +182,7 @@ const SUBCOMMAND_HANDLERS = {
     if (!(await requireManager(interaction))) return;
     const channel = interaction.options.getChannel('channel', true);
     updateGuildConfig(interaction.guildId, { outageChannelId: channel.id });
+    audit(interaction, `moved outage alerts to <#${channel.id}>.`);
     await interaction.reply({ embeds: [successEmbed({ description: `🚨 Outage alerts now post in <#${channel.id}>.` })], ephemeral: true });
   },
 };

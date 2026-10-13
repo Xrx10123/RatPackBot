@@ -1,5 +1,6 @@
 import { SlashCommandBuilder } from 'discord.js';
 import { requirePlayerInVoice } from '../guards.js';
+import { refreshPanel } from '../ui/panel.js';
 import { successEmbed } from '../../../core/embeds.js';
 
 export const volume = {
@@ -17,5 +18,6 @@ export const volume = {
     const level = interaction.options.getInteger('level', true);
     await player.setVolume(level);
     await interaction.reply({ embeds: [successEmbed({ description: `🔊 Volume set to **${level}%**.` })], ephemeral: true });
+    await refreshPanel(interaction.client, player);
   },
 };

@@ -1,5 +1,6 @@
 import { SlashCommandBuilder } from 'discord.js';
 import { requirePlayerInVoice } from '../guards.js';
+import { refreshPanel } from '../ui/panel.js';
 import { successEmbed, warnEmbed } from '../../../core/embeds.js';
 
 export const pause = {
@@ -16,5 +17,6 @@ export const pause = {
 
     await player.pause();
     await interaction.reply({ embeds: [successEmbed({ description: '⏸ Paused.' })], ephemeral: true });
+    await refreshPanel(interaction.client, player);
   },
 };

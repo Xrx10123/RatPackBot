@@ -1,5 +1,5 @@
 import { logger } from '../../core/logger.js';
-import { getSpawnChannelIds } from './config.js';
+import { getSpawnChannelIds, isSleepingNow } from './config.js';
 import { ensureState, getCurrentState, bumpLastSpawnAt } from './state.js';
 import { getActiveSpawn, createSpawn, pickVariant, setSpawnMessageId, resolveSpawn } from './spawns.js';
 import { buildSpawnPayload } from './ui/spawnEmbed.js';
@@ -24,6 +24,10 @@ async function maybeSpawnForGuild(client, guildId) {
     if (Date.now() > active.expiresAt) await expireSpawn(client, active);
     return;
   }
+
+  // Overnight she's asleep: no surprise 3 AM pings. (An active spawn still
+  // expires normally above; /pet spawn bypasses this on purpose.)
+  if (isSleepingNow(guildId)) return;
 
   const state = ensureState(guildId);
   const hoursSince = state.lastSpawnAt ? (Date.now() - state.lastSpawnAt) / (1000 * 60 * 60) : Infinity;

@@ -1,6 +1,8 @@
 import { eq } from 'drizzle-orm';
 import { db } from '../../db/index.js';
 import { peachesConfig } from '../../db/schema.js';
+import { getGuildConfig } from '../../core/guildConfig.js';
+import { isQuietHours } from './progression.js';
 
 export function getPeachesConfig(guildId) {
   return db.select().from(peachesConfig).where(eq(peachesConfig.guildId, guildId)).get();
@@ -19,6 +21,7 @@ export function ensurePeachesConfig(guildId) {
     crossOutages: 1,
     crossHoards: 1,
     spawnChannels: null,
+    quietHours: 1,
   };
   db.insert(peachesConfig).values(row).run();
   return row;
@@ -37,6 +40,13 @@ export function getSpawnChannelIds(guildId) {
 
 export function setSpawnChannelIds(guildId, channelIds) {
   updatePeachesConfig(guildId, { spawnChannels: channelIds.join(',') });
+}
+
+/** True if she should stay out of sight right now (overnight in the server's timezone, unless turned off). */
+export function isSleepingNow(guildId, now = new Date()) {
+  const config = ensurePeachesConfig(guildId);
+  if (config.quietHours === 0) return false;
+  return isQuietHours(now, getGuildConfig(guildId)?.timezone);
 }
 
 export function isCrossModuleEnabled(guildId, moduleKey) {

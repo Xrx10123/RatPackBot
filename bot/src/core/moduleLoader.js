@@ -4,6 +4,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { registerCommands } from './commandRegistry.js';
 import { scheduleWithJitter } from './scheduler.js';
 import { logger } from './logger.js';
+import { logToGuild } from './guildLog.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const MODULES_DIR = path.join(__dirname, '..', 'modules');
@@ -107,7 +108,7 @@ function extraArgs(customId) {
   return customId.split(ID_SEPARATOR).slice(2);
 }
 
-function wireInteractionDispatch(client, registry) {
+export function wireInteractionDispatch(client, registry) {
   client.on('interactionCreate', async (interaction) => {
     try {
       if (interaction.isChatInputCommand()) {
@@ -145,6 +146,18 @@ function wireInteractionDispatch(client, registry) {
       }
     } catch (err) {
       logger.error({ err, customId: interaction.customId, command: interaction.commandName }, 'Interaction handler threw');
+      if (interaction.guildId) {
+        const what = interaction.commandName ? `/${interaction.commandName}` : `\`${interaction.customId?.split(ID_SEPARATOR).slice(0, 2).join(ID_SEPARATOR)}\``;
+        void logToGuild(client, interaction.guildId, {
+          level: 'error',
+          title: '⚠️ Something broke',
+          description: `${what} failed for ${interaction.user}: \`${String(err?.message ?? err).slice(0, 300)}\``,
+        });
+      }
+      if (interaction.isAutocomplete()) {
+        await interaction.respond([]).catch(() => {});
+        return;
+      }
       const payload = { content: '🐀 Something broke on my end. Try again in a moment.', ephemeral: true };
       if (interaction.deferred || interaction.replied) {
         await interaction.followUp(payload).catch(() => {});

@@ -1,5 +1,5 @@
 import { logger } from '../../core/logger.js';
-import { ensurePeachesConfig, getSpawnChannelIds } from './config.js';
+import { ensurePeachesConfig, getSpawnChannelIds, isSleepingNow } from './config.js';
 import { getCurrentState, getLeastRecentInteractors } from './state.js';
 import {
   getActiveMischiefInChannel,
@@ -114,6 +114,7 @@ async function tryMischiefForGuild(client, guildId) {
 
   const spawnChannels = getSpawnChannelIds(guildId);
   if (spawnChannels.length === 0) return;
+  if (isSleepingNow(guildId)) return;
 
   const state = getCurrentState(guildId);
   const isEscalation = state.mood === 'neglected';

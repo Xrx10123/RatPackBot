@@ -1,5 +1,6 @@
 import { SlashCommandBuilder } from 'discord.js';
 import { requirePlayerInVoice } from '../guards.js';
+import { refreshPanel } from '../ui/panel.js';
 import { successEmbed, warnEmbed } from '../../../core/embeds.js';
 
 export const resume = {
@@ -16,5 +17,6 @@ export const resume = {
 
     await player.resume();
     await interaction.reply({ embeds: [successEmbed({ description: '▶ Resumed.' })], ephemeral: true });
+    await refreshPanel(interaction.client, player);
   },
 };

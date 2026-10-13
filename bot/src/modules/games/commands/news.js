@@ -15,6 +15,7 @@ import {
   setEnabled,
   setTagFilter,
 } from '../newsSubscriptions.js';
+import { audit } from '../../../core/guildLog.js';
 
 export const news = {
   data: new SlashCommandBuilder()
@@ -91,6 +92,7 @@ const SUBCOMMAND_HANDLERS = {
     }
 
     addSubscription({ guildId: interaction.guildId, gameName: app.name, steamAppid: app.appid });
+    audit(interaction, `followed **${app.name}** news.`);
     await interaction.editReply({ embeds: [successEmbed({ description: `📰 Now following **${app.name}**.` })] });
   },
 
@@ -102,6 +104,7 @@ const SUBCOMMAND_HANDLERS = {
       return;
     }
     removeSubscription(subRow.id);
+    audit(interaction, `unfollowed **${subRow.gameName}** news.`);
     await interaction.reply({ embeds: [successEmbed({ description: `🐀 Stopped following **${subRow.gameName}**.` })], ephemeral: true });
   },
 
@@ -167,12 +170,14 @@ const SUBCOMMAND_HANDLERS = {
     const raw = interaction.options.getString('tags', true).trim();
     if (['clear', 'none', 'off', 'all', '-'].includes(raw.toLowerCase())) {
       setTagFilter(subRow.id, null);
+      audit(interaction, `cleared the news filter for **${subRow.gameName}**.`);
       await interaction.reply({ embeds: [successEmbed({ description: `🐀 **${subRow.gameName}** will show all news again.` })], ephemeral: true });
       return;
     }
 
     const tags = [...new Set(raw.split(',').map((t) => t.trim().toLowerCase()).filter(Boolean))].join(',');
     setTagFilter(subRow.id, tags || null);
+    audit(interaction, `filtered **${subRow.gameName}** news to: ${tags || 'everything'}.`);
     await interaction.reply({ embeds: [successEmbed({ description: `🐀 **${subRow.gameName}**'s feed is now filtered to: ${tags || 'everything'}` })], ephemeral: true });
   },
 };
@@ -194,6 +199,7 @@ export const newsButtons = {
       return;
     }
     setEnabled(subRow.id, !subRow.enabled);
+    audit(interaction, `${subRow.enabled ? 'paused' : 'resumed'} **${subRow.gameName}** news.`);
 
     const subs = listSubscriptions(interaction.guildId);
     const rows = [];
