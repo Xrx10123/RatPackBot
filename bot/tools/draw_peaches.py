@@ -123,11 +123,12 @@ class Rig:
         self.held = (cx + 66, cy - 4)                  # where held props sit
 
 
-def peaches(img, cx, cy, t, expr='open', mouth='smile', paws='down', look=0.0, fur=FUR, belly=BELLY, tail_speed=1.0, blink=True):
+def peaches(img, cx, cy, t, expr='open', mouth='smile', paws='down', look=0.0, fur=FUR, belly=BELLY, tail_speed=1.0, blink=True, ground_shadow=True, show_tail=True):
     """Peaches sitting, facing right. Returns a Rig of anchor points."""
     d = ImageDraw.Draw(img, 'RGBA')
     r = Rig(cx, cy)
-    shadow(img, cx + 8, 216, 62, 7)
+    if ground_shadow:
+        shadow(img, cx + 8, 216, 62, 7)
     d = ImageDraw.Draw(img, 'RGBA')
 
     # tail (behind everything)
@@ -138,11 +139,11 @@ def peaches(img, cx, cy, t, expr='open', mouth='smile', paws='down', look=0.0, f
         x = cx - 26 - 72 * u
         y = cy + 37 + 2 * u - 24 * u ** 3 + 4 * u * u * wave(t, tail_speed, -u * 0.8)
         tail.append((x, y))
-    for i in range(len(tail) - 1):
+    for i in range(len(tail) - 1 if show_tail else 0):
         u = i / (len(tail) - 1)
         d.line(pts(tail[i:i + 2]), fill=LINE, width=p(7.6 - 3.6 * u))
         d.ellipse(box(*tail[i + 1], (3.8 - 1.8 * u), (3.8 - 1.8 * u)), fill=LINE)
-    for i in range(len(tail) - 1):
+    for i in range(len(tail) - 1 if show_tail else 0):
         u = i / (len(tail) - 1)
         d.line(pts(tail[i:i + 2]), fill=PINK, width=p(4.8 - 2.6 * u))
         d.ellipse(box(*tail[i + 1], (2.4 - 1.3 * u), (2.4 - 1.3 * u)), fill=PINK)
@@ -1030,12 +1031,29 @@ def sun_hat(d, r, t):
     flower(d, hx + 14, hy - 3, (255, 255, 255), r=4)
 
 
-def float_ring(d, cx, cy):
-    outlined_ellipse(d, cx + 4, cy + 16, 54, 18, (255, 110, 120), w=1.8)
-    d.ellipse(box(cx + 4, cy + 14, 38, 9), fill=(96, 186, 230))  # the water showing through the middle
-    for a in (30, 150, 270):
+WATER = (96, 186, 230)
+RING = (255, 110, 120)
+
+
+def float_ring_back(d, x, y):
+    """The far half of the pool ring (behind her)."""
+    outlined_ellipse(d, x, y, 54, 17, RING, w=1.8)
+    d.ellipse(box(x, y, 36, 8), fill=WATER, outline=LINE, width=p(1.4))
+    for a in (200, 270, 340):
         rad = math.radians(a)
-        d.ellipse(box(cx + 4 + 46 * math.cos(rad), cy + 16 + 15 * math.sin(rad), 8, 5), fill=WHITE)
+        d.ellipse(box(x + 45 * math.cos(rad), y + 12.5 * math.sin(rad), 7, 4), fill=WHITE)
+
+
+def float_ring_front(d, x, y):
+    """The near half of the ring, drawn over her so she sits inside it."""
+    d.chord(box(x, y, 55.8, 18.8), 0, 180, fill=LINE)
+    d.chord(box(x, y, 54, 17), 0, 180, fill=RING)
+    d.chord(box(x, y, 37.4, 9.4), 0, 180, fill=LINE)
+    d.chord(box(x, y, 36, 8), 0, 180, fill=WATER)
+    d.rectangle([p(x - 36), p(y - 0.6), p(x + 36), p(y + 0.6)], fill=WATER)
+    for a in (30, 90, 150):
+        rad = math.radians(a)
+        d.ellipse(box(x + 45 * math.cos(rad), y + 12.5 * math.sin(rad), 7, 4), fill=WHITE)
 
 
 def ice_cream(d, x, y, t):
@@ -1081,15 +1099,25 @@ def s_summer(img, t):
 
 def s_beach(img, t):
     d = beach_stage(img, t)
-    bobbing = wave(t) * 3
-    cx, cy = PX + 10, PY - 4 + bobbing
-    r = peaches(img, cx, cy, t, expr='happy', mouth='smile')
+    bob_y = wave(t) * 3
+    rx_, ry_ = PX + 30, 190 + bob_y           # ring centre, floating on the water
+    float_ring_back(d, rx_, ry_)
+    # body centred in the ring's hole (her head leans out to the right, like she's lounging)
+    r = peaches(img, rx_ - 8, ry_ - 18, t, expr='happy', paws='up', ground_shadow=False, show_tail=False)
     d = ImageDraw.Draw(img, 'RGBA')
-    float_ring(d, cx, cy + 22)
+    # the water she's sitting in hides her below the ring
+    d.rectangle([0, p(ry_ + 1), p(DW), p(214)], fill=WATER)
+    d.rectangle([0, p(214), p(DW), p(DH)], fill=(246, 222, 168))  # sand again, over her toes
+    for i in range(7):
+        x = (i * 52 + t * 52) % (DW + 52) - 26
+        if abs(x - rx_) > 60:
+            d.arc(box(x, ry_ + 6, 14, 5), 200, 340, fill=WHITE, width=p(1.6))
+    float_ring_front(d, rx_, ry_)
     sunglasses(d, r.eye[0] + 1, r.eye[1])
-    for i in range(4):
-        u = (t + i / 4) % 1.0
-        d.ellipse(box(cx - 60 + i * 30, 196 - 4 * u, 3 + 3 * u, 1.2 + u), outline=(255, 255, 255, int(200 * (1 - u))), width=p(1))
+    for i in range(3):
+        u = (t + i / 3) % 1.0
+        rr = 58 + 14 * u
+        d.arc(box(rx_, ry_ + 4, rr, rr * 0.3), 20, 160, fill=(200, 236, 250), width=p(1.4))
 
 
 SCENES = {
