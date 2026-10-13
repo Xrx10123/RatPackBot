@@ -3,7 +3,7 @@ import { successEmbed, errorEmbed, infoEmbed } from '../../../core/embeds.js';
 import { getGuildConfig } from '../../../core/guildConfig.js';
 import { componentText } from '../../../utils/text.js';
 import { parseWhen } from '../timeParse.js';
-import { peachesName } from '../peachesVoice.js';
+import { peachesName } from '../../../core/peachesVoice.js';
 import { createReminder, listUserReminders, cancelReminder, MAX_ACTIVE_PER_USER } from '../reminders.js';
 
 const unix = (ms) => Math.floor(ms / 1000);

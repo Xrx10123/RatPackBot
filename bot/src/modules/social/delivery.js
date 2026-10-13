@@ -7,7 +7,7 @@ import { getGuildConfig } from '../../core/guildConfig.js';
 import { logger } from '../../core/logger.js';
 import { componentText } from '../../utils/text.js';
 import { wallClock } from './timeParse.js';
-import { peachesName, giftCheese } from './peachesVoice.js';
+import { peachesName, giftCheese } from '../../core/peachesVoice.js';
 import { listBirthdays, isBirthdayOn, ageOn, markCelebrated, listExpiredRoles, clearRoleGrant } from './birthdays.js';
 import { dueReminders, claimReminder } from './reminders.js';
 

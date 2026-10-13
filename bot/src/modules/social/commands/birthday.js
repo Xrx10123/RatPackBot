@@ -4,7 +4,7 @@ import { getGuildConfig, updateGuildConfig } from '../../../core/guildConfig.js'
 import { isManager, requireManager } from '../../../core/permissions.js';
 import { audit } from '../../../core/guildLog.js';
 import { wallClock } from '../timeParse.js';
-import { peachesName, giftCheese } from '../peachesVoice.js';
+import { peachesName, giftCheese } from '../../../core/peachesVoice.js';
 import { MONTHS, isValidBirthday, setBirthday, removeBirthday, listBirthdays, daysUntilBirthday, formatBirthday, addWish, countWishes } from '../birthdays.js';
 
 function today(guildId) {

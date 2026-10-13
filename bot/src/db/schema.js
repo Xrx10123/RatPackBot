@@ -255,3 +255,28 @@ export const reminders = sqliteTable('reminders', {
   createdAt: integer('created_at').notNull(),
   delivered: integer('delivered').notNull().default(0),
 });
+
+// --- Game night ---------------------------------------------------------------
+
+export const gamenightGames = sqliteTable('gamenight_games', {
+  id: text('id').primaryKey(),
+  guildId: text('guild_id').notNull(),
+  name: text('name').notNull(),
+  minPlayers: integer('min_players'),
+  maxPlayers: integer('max_players'),
+  addedBy: text('added_by').notNull(),
+  addedAt: integer('added_at').notNull(),
+  lastPlayedAt: integer('last_played_at'),
+});
+
+export const gamenightPolls = sqliteTable('gamenight_polls', {
+  id: text('id').primaryKey(),
+  guildId: text('guild_id').notNull(),
+  channelId: text('channel_id').notNull(),
+  messageId: text('message_id'),
+  createdBy: text('created_by').notNull(),
+  options: text('options').notNull(),
+  votes: text('votes').notNull().default('{}'),
+  endsAt: integer('ends_at').notNull(),
+  closed: integer('closed').notNull().default(0),
+});

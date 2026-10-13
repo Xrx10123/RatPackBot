@@ -1,6 +1,6 @@
 import { eq, sql } from 'drizzle-orm';
-import { db } from '../../db/index.js';
-import { peachesState, peachesWallets } from '../../db/schema.js';
+import { db } from '../db/index.js';
+import { peachesState, peachesWallets } from '../db/schema.js';
 
 /**
  * Peaches is the voice of the whole bot. This module reads/writes her
