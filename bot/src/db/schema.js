@@ -19,6 +19,8 @@ export const guilds = sqliteTable('guilds', {
   socialChannelId: text('social_channel_id'),
   birthdayRoleId: text('birthday_role_id'),
   autoplay: integer('autoplay').default(0),
+  dealAlerts: integer('deal_alerts').default(1),
+  freeGameAlerts: integer('free_game_alerts').default(1),
 });
 
 // --- Music --------------------------------------------------------------
@@ -268,7 +270,20 @@ export const gamenightGames = sqliteTable('gamenight_games', {
   addedBy: text('added_by').notNull(),
   addedAt: integer('added_at').notNull(),
   lastPlayedAt: integer('last_played_at'),
+  steamAppid: text('steam_appid'),
+  dealPercent: integer('deal_percent'),
+  dealAlertedAt: integer('deal_alerted_at'),
 });
+
+export const freeGamePosts = sqliteTable(
+  'free_game_posts',
+  {
+    guildId: text('guild_id').notNull(),
+    gameKey: text('game_key').notNull(),
+    postedAt: integer('posted_at').notNull(),
+  },
+  (t) => ({ pk: primaryKey({ columns: [t.guildId, t.gameKey] }) }),
+);
 
 export const gamenightPolls = sqliteTable('gamenight_polls', {
   id: text('id').primaryKey(),

@@ -41,7 +41,9 @@ Peaches, plus social features, with Peaches as the voice of the whole bot.
 - Game night: `/games add|remove|list|pick|vote`, `/teams`
 - Winter season (December): Santa hat, Frosty Peaches, present unwrapping, winter collectibles and shop stock
 
+## Phase 7: Deals — ✅ done
+- Steam sale alerts for games on the game night list (auto-linked on `/games add`), `/games deals`, Epic free games
+
 ## Ideas parking lot
 - Peaches outfits drawn into her GIF art (not just emoji)
 - More seasons (Valentine's, spring, summer)
-- Steam sale / free-game alerts for games on the game night list

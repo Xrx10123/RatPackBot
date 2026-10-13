@@ -188,3 +188,29 @@ test('only the starter or a manager can end a quiz early', async () => {
   assert.equal(getQuiz('g-quiz2'), null);
   assert.equal(quiz.id, 'qz2');
 });
+
+test('a quiz whose music breaks mid-way ends itself and unblocks playback', async () => {
+  for (const [i, t] of ['One', 'Two', 'Three', 'Four'].entries()) recordPlay('g-quiz-broken', track(t, 'Band', `u:b${i}`));
+  const data = new Map([['quiz', true]]);
+  const edits = [];
+  const player = {
+    get: (k) => data.get(k),
+    set: (k, v) => data.set(k, v),
+    search: async ({ query }) => ({ tracks: [track('x', 'Band', query)] }),
+    play: async () => {
+      throw new Error('Lavalink node went away');
+    },
+    stopPlaying: () => {
+      throw new Error('also broken');
+    },
+  };
+  const quiz = _registerQuizForTests({
+    id: 'qz-broken', guildId: 'g-quiz-broken', voiceChannelId: 'vc', startedBy: 'host', rounds: 3, roundNumber: 0,
+    pool: dedupeByTitle(quizPool('g-quiz-broken')), used: new Set(), scores: new Map(), player, random: Math.random,
+    current: null, timer: null, message: { edit: async (p) => edits.push(p) },
+  });
+  await _nextRoundForTests(quiz);
+  assert.equal(getQuiz('g-quiz-broken'), null);
+  assert.equal(data.get('quiz'), false);
+  assert.match(edits.at(-1).embeds[0].data.description, /ended the quiz early/);
+});

@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { and, eq, lt, sql } from 'drizzle-orm';
 import { db } from '../../db/index.js';
-import { gamenightGames, gamenightPolls } from '../../db/schema.js';
+import { gamenightGames, gamenightPolls, freeGamePosts } from '../../db/schema.js';
 
 export function listGames(guildId) {
   return db.select().from(gamenightGames).where(eq(gamenightGames.guildId, guildId)).orderBy(sql`${gamenightGames.name} COLLATE NOCASE`).all();
@@ -65,4 +65,25 @@ export function closePoll(id) {
 
 export function listExpiredPolls(now = Date.now()) {
   return db.select().from(gamenightPolls).where(and(eq(gamenightPolls.closed, 0), lt(gamenightPolls.endsAt, now))).all().map(hydratePoll);
+}
+
+// --- deals ---
+
+export function setSteamLink(id, appid) {
+  db.update(gamenightGames).set({ steamAppid: appid ? String(appid) : null, dealPercent: null, dealAlertedAt: null }).where(eq(gamenightGames.id, id)).run();
+}
+
+export function listLinkedGames() {
+  return db.select().from(gamenightGames).where(sql`${gamenightGames.steamAppid} IS NOT NULL`).all();
+}
+
+export function recordDealState(id, { dealPercent, alertedAt }) {
+  const patch = { dealPercent };
+  if (alertedAt !== undefined) patch.dealAlertedAt = alertedAt;
+  db.update(gamenightGames).set(patch).where(eq(gamenightGames.id, id)).run();
+}
+
+/** Records a free game as announced; false if this server already saw it. */
+export function markFreeGamePosted(guildId, gameKey) {
+  return db.insert(freeGamePosts).values({ guildId, gameKey, postedAt: Date.now() }).onConflictDoNothing().run().changes > 0;
 }

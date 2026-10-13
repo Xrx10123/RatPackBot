@@ -98,7 +98,20 @@ async function editQuizMessage(quiz, payload) {
   await quiz.message?.edit(payload).catch((err) => logger.debug({ err }, 'Quiz message edit failed'));
 }
 
+/**
+ * Advances the quiz. Any failure ends it — a quiz that silently stalled
+ * would keep the player flagged as busy and block all music in the server.
+ */
 async function nextRound(quiz) {
+  try {
+    await advance(quiz);
+  } catch (err) {
+    logger.warn({ err, guildId: quiz.guildId }, 'Quiz round failed — ending the quiz');
+    await finishQuiz(quiz, 'Something went wrong with the music, so I ended the quiz early.').catch(() => {});
+  }
+}
+
+async function advance(quiz) {
   if (quizzes.get(quiz.guildId) !== quiz) return; // ended in the meantime
   if (quiz.roundNumber >= quiz.rounds) return finishQuiz(quiz);
 
@@ -128,7 +141,7 @@ async function revealRound(quiz, round, winnerId) {
   round.answered = true;
   clearTimeout(quiz.timer);
   await editQuizMessage(quiz, buildRoundPayload(quiz, { reveal: true, winnerId }));
-  quiz.timer = setTimeout(() => nextRound(quiz).catch((err) => logger.warn({ err }, 'Quiz round failed')), BETWEEN_ROUNDS_MS);
+  quiz.timer = setTimeout(() => nextRound(quiz), BETWEEN_ROUNDS_MS);
   quiz.timer.unref?.();
 }
 
@@ -136,8 +149,10 @@ async function finishQuiz(quiz, note = null) {
   if (quizzes.get(quiz.guildId) !== quiz) return;
   quizzes.delete(quiz.guildId);
   clearTimeout(quiz.timer);
-  await quiz.player.stopPlaying(true).catch(() => {});
-  quiz.player.set('quiz', false);
+  quiz.player.set('quiz', false); // first, so music is never left blocked whatever happens next
+  await Promise.resolve()
+    .then(() => quiz.player.stopPlaying(true))
+    .catch(() => {});
 
   const { ranked, winners, payouts } = scoreboard(quiz.scores);
   for (const { userId, cheese } of payouts) if (cheese > 0) giftCheese(quiz.guildId, userId, cheese);
@@ -224,7 +239,7 @@ export const musicquiz = {
 
     await interaction.editReply({ embeds: [infoEmbed({ title: '🎶 Guess the song!', description: `${peachesName(interaction.guildId)} is cueing up ${quiz.rounds} songs from this server's playlist… get ready!` })] });
     quiz.message = await interaction.fetchReply();
-    setTimeout(() => nextRound(quiz).catch((err) => logger.warn({ err }, 'Quiz failed to start')), 3_000).unref?.();
+    setTimeout(() => nextRound(quiz), 3_000).unref?.();
   },
 };
 

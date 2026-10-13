@@ -4,7 +4,12 @@ import { isManager } from '../../../core/permissions.js';
 import { peachesName } from '../../../core/peachesVoice.js';
 import { fuzzySearch } from '../../../utils/fuzzy.js';
 import { componentText, escapeMarkdown } from '../../../utils/text.js';
-import { listGames, getGame, addGame, findGameByName, removeGame, markPlayed, createPoll, getPoll, setPollMessage, saveVotes, closePoll } from '../store.js';
+import { listGames, getGame, addGame, findGameByName, removeGame, markPlayed, createPoll, getPoll, setPollMessage, saveVotes, closePoll, setSteamLink } from '../store.js';
+import { searchSteam, pickSteamMatch, getSteamPrices, steamStoreUrl } from '../storefronts.js';
+import { dealLine, MIN_DISCOUNT } from '../deals.js';
+import { getGuildConfig, updateGuildConfig } from '../../../core/guildConfig.js';
+import { requireManager } from '../../../core/permissions.js';
+import { audit } from '../../../core/guildLog.js';
 import { fitsPlayers, weightedPick, pickPollOptions, tallyPoll, playerRange } from '../logic.js';
 
 const POLL_SIZE = 5;
@@ -22,7 +27,7 @@ function eligibleGames(guildId, players) {
 }
 
 function describeGame(game) {
-  const bits = [playerRange(game), game.lastPlayedAt ? `last played <t:${unix(game.lastPlayedAt)}:R>` : 'never played yet'].filter(Boolean);
+  const bits = [playerRange(game), game.lastPlayedAt ? `last played <t:${unix(game.lastPlayedAt)}:R>` : 'never played yet', game.steamAppid ? `[Steam](${steamStoreUrl(game.steamAppid)})` : null].filter(Boolean);
   return bits.join(' · ');
 }
 
@@ -94,6 +99,21 @@ export const games = {
     )
     .addSubcommand((sub) =>
       sub
+        .setName('steam')
+        .setDescription('Link (or unlink) a listed game to its Steam page for sale alerts.')
+        .addStringOption((o) => o.setName('game').setDescription('Game on the list').setRequired(true).setAutocomplete(true))
+        .addStringOption((o) => o.setName('steam').setDescription('Steam name, store link, or app ID — or "none" to unlink').setRequired(true).setMaxLength(200)),
+    )
+    .addSubcommand((sub) => sub.setName('deals').setDescription('Which games on the list are on sale right now.'))
+    .addSubcommand((sub) =>
+      sub
+        .setName('alerts')
+        .setDescription('Sale and free-game alerts in the Game News channel (managers).')
+        .addBooleanOption((o) => o.setName('sales').setDescription('Steam sales on games from the list'))
+        .addBooleanOption((o) => o.setName('free_games').setDescription("Epic's free games")),
+    )
+    .addSubcommand((sub) =>
+      sub
         .setName('vote')
         .setDescription('Quick vote between a few games.')
         .addIntegerOption((o) => o.setName('players').setDescription('How many are playing (default: your voice channel)').setMinValue(1).setMaxValue(100))
@@ -126,8 +146,13 @@ const SUBCOMMANDS = {
       await interaction.reply({ embeds: [warnEmbed({ description: `🎮 **${escapeMarkdown(findGameByName(interaction.guildId, name)?.name ?? name)}** is already on the list.` })], ephemeral: true });
       return;
     }
+    await interaction.deferReply();
+    // Best effort: link it to Steam so sales get announced. A miss is fine — /games steam fixes it.
+    const match = await searchSteam(row.name).then((items) => pickSteamMatch(items, row.name)).catch(() => null);
+    if (match) setSteamLink(row.id, match.id);
     const range = playerRange(row);
-    await interaction.reply({ embeds: [successEmbed({ description: `🎮 Added **${escapeMarkdown(row.name)}**${range ? ` (${range})` : ''} to the game night list.` })] });
+    const steamNote = match ? `\n-# 🛒 Linked to [${escapeMarkdown(match.name)}](${steamStoreUrl(match.id)}) on Steam for sale alerts — wrong game? \`/games steam\`` : '';
+    await interaction.editReply({ embeds: [successEmbed({ description: `🎮 Added **${escapeMarkdown(row.name)}**${range ? ` (${range})` : ''} to the game night list.${steamNote}` })] });
   },
 
   async remove(interaction) {
@@ -161,6 +186,69 @@ const SUBCOMMANDS = {
       description += `${description ? '\n' : ''}${line}`;
     }
     await interaction.reply({ embeds: [infoEmbed({ title: `🎮 Game night list (${all.length})`, description })] });
+  },
+
+  async steam(interaction) {
+    const value = interaction.options.getString('game', true);
+    const game = getGame(value)?.guildId === interaction.guildId ? getGame(value) : findGameByName(interaction.guildId, value);
+    if (!game) {
+      await interaction.reply({ embeds: [errorEmbed({ description: '🐀 That game isn\'t on the list.' })], ephemeral: true });
+      return;
+    }
+    const raw = interaction.options.getString('steam', true).trim();
+    if (['none', 'unlink', 'off', '-'].includes(raw.toLowerCase())) {
+      setSteamLink(game.id, null);
+      await interaction.reply({ embeds: [successEmbed({ description: `🛒 **${escapeMarkdown(game.name)}** is no longer linked to Steam.` })], ephemeral: true });
+      return;
+    }
+    await interaction.deferReply({ ephemeral: true });
+    const appid = raw.match(/store\.steampowered\.com\/app\/(\d+)/)?.[1] ?? (/^\d+$/.test(raw) ? raw : null);
+    let match = appid ? { id: appid, name: `app ${appid}` } : null;
+    if (!match) match = await searchSteam(raw).then((items) => pickSteamMatch(items, raw)).catch(() => null);
+    if (!match) {
+      await interaction.editReply({ embeds: [errorEmbed({ description: `🐀 Couldn't find **${escapeMarkdown(raw.slice(0, 100))}** on Steam. Try pasting its store link.` })] });
+      return;
+    }
+    setSteamLink(game.id, match.id);
+    await interaction.editReply({ embeds: [successEmbed({ description: `🛒 **${escapeMarkdown(game.name)}** → [${escapeMarkdown(match.name)}](${steamStoreUrl(match.id)}). Sales will be announced in the Game News channel.` })] });
+  },
+
+  async deals(interaction) {
+    const linked = listGames(interaction.guildId).filter((g) => g.steamAppid);
+    if (linked.length === 0) {
+      await interaction.reply({ embeds: [infoEmbed({ description: '🛒 None of the games on the list are linked to Steam yet — add games with `/games add` or link one with `/games steam`.' })], ephemeral: true });
+      return;
+    }
+    await interaction.deferReply();
+    const prices = await getSteamPrices(linked.map((g) => g.steamAppid)).catch(() => null);
+    if (!prices) {
+      await interaction.editReply({ embeds: [warnEmbed({ description: "🐀 Couldn't reach Steam right now. Try again in a bit." })] });
+      return;
+    }
+    const onSale = linked.filter((g) => (prices[g.steamAppid]?.percent ?? 0) >= MIN_DISCOUNT).sort((a, b) => prices[b.steamAppid].percent - prices[a.steamAppid].percent);
+    const description = onSale.length
+      ? onSale.map((g) => dealLine(g, prices[g.steamAppid])).join('\n').slice(0, 4000)
+      : `Nothing on the list is on sale right now (${linked.length} game${linked.length === 1 ? '' : 's'} checked). ${peachesName(interaction.guildId)} will keep watching.`;
+    await interaction.editReply({ embeds: [(onSale.length ? successEmbed : infoEmbed)({ title: '💸 Deals on your game night list', description })] });
+  },
+
+  async alerts(interaction) {
+    if (!(await requireManager(interaction))) return;
+    const sales = interaction.options.getBoolean('sales');
+    const free = interaction.options.getBoolean('free_games');
+    const patch = {};
+    if (sales !== null) patch.dealAlerts = sales ? 1 : 0;
+    if (free !== null) patch.freeGameAlerts = free ? 1 : 0;
+    if (Object.keys(patch).length) {
+      updateGuildConfig(interaction.guildId, patch);
+      audit(interaction, `set game alerts: ${Object.entries(patch).map(([k, v]) => `${k}=${v ? 'on' : 'off'}`).join(', ')}.`);
+    }
+    const cfg = getGuildConfig(interaction.guildId);
+    const where = cfg?.newsChannelId ? `<#${cfg.newsChannelId}>` : cfg?.socialChannelId ? `<#${cfg.socialChannelId}>` : '*no channel yet — pick a Game News channel in `/setup start`*';
+    await interaction.reply({
+      embeds: [infoEmbed({ description: `🛒 Steam sales: **${cfg?.dealAlerts === 0 ? 'off' : 'on'}** · 🎁 Epic free games: **${cfg?.freeGameAlerts === 0 ? 'off' : 'on'}**\nPosting in ${where}.` })],
+      ephemeral: true,
+    });
   },
 
   async pick(interaction) {
