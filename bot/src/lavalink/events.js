@@ -1,12 +1,7 @@
 import { infoEmbed } from '../core/embeds.js';
-<<<<<<< Updated upstream
 import { upsertPanel, stopProgressLoop, retirePanel } from '../modules/music/ui/panel.js';
 import { getPanelRow, deletePanelRow, panelMessageChannelId } from '../modules/music/panelStore.js';
-=======
-import { upsertPanel, stopProgressLoop } from '../modules/music/ui/panel.js';
-import { getPanelRow, deletePanelRow } from '../modules/music/panelStore.js';
 import { recordHistory } from '../modules/music/history.js';
->>>>>>> Stashed changes
 import { getGuildConfig } from '../core/guildConfig.js';
 import { logger } from '../core/logger.js';
 import { recordPlay } from '../modules/music/plays.js';
@@ -27,23 +22,23 @@ function humanMemberCount(channel) {
 export function registerLavalinkEvents(manager, client) {
   manager.on('trackStart', async (player, track) => {
     player.set('voteSkips', new Set());
+    const currentTrack = track ?? player.queue.current;
     // Quiz snippets aren't real listening (and would give the answers away in /musicstats).
     if (!player.get('quiz')) {
       try {
-        recordPlay(player.guildId, track ?? player.queue.current);
+        recordPlay(player.guildId, currentTrack);
       } catch (err) {
         logger.warn({ err }, 'Could not record play');
       }
-    }
 
-    const track = player.queue.current;
-    if (track) {
-      const requester = track.requester;
-      const requesterId = typeof requester === 'object' && requester && 'id' in requester ? requester.id : null;
-      try {
-        recordHistory({ guildId: player.guildId, track, requesterId });
-      } catch (err) {
-        logger.warn({ err, guildId: player.guildId }, 'Could not record play history');
+      if (currentTrack) {
+        const requester = currentTrack.requester;
+        const requesterId = typeof requester === 'object' && requester && 'id' in requester ? requester.id : null;
+        try {
+          recordHistory({ guildId: player.guildId, track: currentTrack, requesterId });
+        } catch (err) {
+          logger.warn({ err, guildId: player.guildId }, 'Could not record play history');
+        }
       }
     }
 
