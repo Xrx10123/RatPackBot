@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, PermissionFlagsBits, ChannelType } from 'discord.js';
+import { SlashCommandBuilder, ChannelType } from 'discord.js';
 import { successEmbed, errorEmbed, infoEmbed, warnEmbed } from '../../../core/embeds.js';
 import { MOOD_DISPLAY, pickLine } from '../variants.js';
 import { getCurrentState, renamePeaches, getRenameCooldownRemaining, resetToContent, syncLevel } from '../state.js';
@@ -17,6 +17,7 @@ import { outfitLine, outfitEmojis } from '../wardrobe.js';
 import { buildShopPayload, buildWardrobePayload } from '../ui/shopUi.js';
 import { startHideAndSeek, guessHideAndSeek, startTrivia, startRaceLobby } from '../games/index.js';
 import { audit } from '../../../core/guildLog.js';
+import { isManager } from '../../../core/permissions.js';
 
 const LEADERBOARD_CATEGORIES = [
   { name: 'Cheese Fed', value: 'cheeseFed' },
@@ -30,7 +31,7 @@ const LEADERBOARD_CATEGORIES = [
 const BAD_WORDS = ['nigger', 'faggot', 'retard', 'cunt']; // minimal blocklist per the design doc's "basic slur filter"
 
 function isAdmin(interaction) {
-  return interaction.member.permissions.has(PermissionFlagsBits.ManageGuild);
+  return isManager(interaction.member);
 }
 
 async function requireAdmin(interaction) {

@@ -39,9 +39,19 @@ export function checkChannelPermissions(channel, required = []) {
   };
 }
 
-/** True if the member can manage the server — the bar for changing any guild-wide Ratpack setting. */
+/**
+ * True if the member can manage the server — the bar for changing any
+ * guild-wide Ratpack setting. `member.permissions` is a PermissionsBitField
+ * for a cached GuildMember, but discord.js falls back to the raw
+ * APIInteractionGuildMember (permissions as a bitfield string) when the
+ * guild isn't in its cache yet — e.g. right after a restart — so this
+ * accepts either shape.
+ */
 export function isManager(member) {
-  return Boolean(member?.permissions?.has(PermissionsBitField.Flags.ManageGuild));
+  const permissions = member?.permissions;
+  if (!permissions) return false;
+  const bitfield = typeof permissions.has === 'function' ? permissions : new PermissionsBitField(BigInt(permissions));
+  return bitfield.has(PermissionsBitField.Flags.ManageGuild);
 }
 
 /**
