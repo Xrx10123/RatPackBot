@@ -45,6 +45,18 @@ export const hoardTracks = sqliteTable('hoard_tracks', {
   source: text('source'),
 });
 
+export const playHistory = sqliteTable('play_history', {
+  id: text('id').primaryKey(),
+  guildId: text('guild_id').notNull(),
+  title: text('title'),
+  artist: text('artist'),
+  uri: text('uri'),
+  duration: integer('duration'),
+  source: text('source'),
+  requesterId: text('requester_id'),
+  playedAt: integer('played_at'),
+});
+
 export const voicePanels = sqliteTable('voice_panels', {
   guildId: text('guild_id').notNull(),
   voiceChannelId: text('voice_channel_id').primaryKey(),

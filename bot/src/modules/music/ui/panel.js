@@ -9,6 +9,7 @@ import { skipOrEnd, QUIZ_BUSY_TEXT } from '../playerLifecycle.js';
 import { componentText, escapeMarkdown } from '../../../utils/text.js';
 import { logger } from '../../../core/logger.js';
 import { buildQueuePage } from './queuePage.js';
+import { buildHistoryPage } from './historyPage.js';
 import { getGuildConfig } from '../../../core/guildConfig.js';
 import { registerSkipVote } from '../voteSkip.js';
 
@@ -74,6 +75,7 @@ function controlRows(player) {
     new ButtonBuilder().setCustomId('music:panel_mute').setEmoji('🔇').setStyle(player.volume === 0 ? ButtonStyle.Danger : ButtonStyle.Secondary),
     new ButtonBuilder().setCustomId('music:panel_volup').setEmoji('🔊').setStyle(ButtonStyle.Secondary).setDisabled(player.volume >= 200),
     new ButtonBuilder().setCustomId('music:panel_favorite').setEmoji('❤️').setStyle(ButtonStyle.Secondary).setDisabled(!track),
+    new ButtonBuilder().setCustomId('music:panel_history').setEmoji('🕓').setStyle(ButtonStyle.Secondary),
   );
 
   const rows = [row1, row2, row3];
@@ -406,6 +408,10 @@ export const panelButtons = {
 
     addTrackToHoard(hoard.id, track);
     await interaction.reply({ embeds: [successEmbed({ description: `❤️ Added **${track.info.title}** to Community Favorites!` })], ephemeral: true });
+  },
+
+  async panel_history(interaction) {
+    await interaction.reply({ ...buildHistoryPage(interaction.guildId, 0), ephemeral: true });
   },
 };
 

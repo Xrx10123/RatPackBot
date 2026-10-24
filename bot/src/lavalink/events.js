@@ -1,6 +1,12 @@
 import { infoEmbed } from '../core/embeds.js';
+<<<<<<< Updated upstream
 import { upsertPanel, stopProgressLoop, retirePanel } from '../modules/music/ui/panel.js';
 import { getPanelRow, deletePanelRow, panelMessageChannelId } from '../modules/music/panelStore.js';
+=======
+import { upsertPanel, stopProgressLoop } from '../modules/music/ui/panel.js';
+import { getPanelRow, deletePanelRow } from '../modules/music/panelStore.js';
+import { recordHistory } from '../modules/music/history.js';
+>>>>>>> Stashed changes
 import { getGuildConfig } from '../core/guildConfig.js';
 import { logger } from '../core/logger.js';
 import { recordPlay } from '../modules/music/plays.js';
@@ -27,6 +33,17 @@ export function registerLavalinkEvents(manager, client) {
         recordPlay(player.guildId, track ?? player.queue.current);
       } catch (err) {
         logger.warn({ err }, 'Could not record play');
+      }
+    }
+
+    const track = player.queue.current;
+    if (track) {
+      const requester = track.requester;
+      const requesterId = typeof requester === 'object' && requester && 'id' in requester ? requester.id : null;
+      try {
+        recordHistory({ guildId: player.guildId, track, requesterId });
+      } catch (err) {
+        logger.warn({ err, guildId: player.guildId }, 'Could not record play history');
       }
     }
 

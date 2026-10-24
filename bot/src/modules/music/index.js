@@ -22,6 +22,7 @@ import { panelButtons, panelSelects, upsertPanel } from './ui/panel.js';
 import { getPanelRowByMessageId, deletePanelRow } from './panelStore.js';
 import { getLavalinkManager } from '../../lavalink/manager.js';
 import { buildQueuePage } from './ui/queuePage.js';
+import { buildHistoryPage } from './ui/historyPage.js';
 
 export default {
   name: 'music',
@@ -39,6 +40,9 @@ export default {
         return;
       }
       await interaction.update(buildQueuePage(player, Number(pageStr)));
+    },
+    async 'history_page'(interaction, pageStr) {
+      await interaction.update(buildHistoryPage(interaction.guildId, Number(pageStr)));
     },
   },
   selects: {
